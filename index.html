@@ -595,7 +595,7 @@
        * minmax(0, 1fr) is critical — it allows the column to shrink below its
        * content's intrinsic size, which is what makes overflow + scroll work.
        */
-      grid-template-columns: minmax(0, 520px) minmax(0, 1fr);
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
       gap: 1.5rem;
       align-items: start;
     }
@@ -609,14 +609,13 @@
     }
 
     .script-walkthrough .code-block-wrapper {
-      position: sticky;
-      top: 5rem;
+      position: static;
     }
 
     .script-walkthrough .code-scroll {
       /* Override the base 420px max-height so the code panel fills the viewport
          and the user can scroll through the full script without leaving the page. */
-      max-height: min(calc(100vh - 12rem), 600px);
+      max-height: none;
       overflow-x: auto;
       overflow-y: auto;
     }
