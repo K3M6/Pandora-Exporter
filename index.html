@@ -8,32 +8,54 @@
   <style>
     /* ── Design tokens ──────────────────────────────────────────────────────── */
     :root {
-      --bg-base:        #0e1117;
-      --bg-surface:     #161b27;
-      --bg-elevated:    #1e2535;
-      --bg-hover:       #252d3d;
-      --border:         #2a3347;
-      --border-focus:   #4f6bef;
-      --text-primary:   #e8eaf0;
-      --text-secondary: #8892a4;
-      --text-muted:     #8b96a9;
-      --accent-1:       #4f6bef;
-      --accent-2:       #7c3aed;
-      --accent-grad:    linear-gradient(135deg, #4f6bef 0%, #7c3aed 100%);
-      --accent-soft:    rgba(79, 107, 239, 0.12);
-      --success:        #22c55e;
+      /* Warm dark bases — deep charcoal with a faint amber undertone */
+      --bg-base:        #0f0e0c;
+      --bg-surface:     #17160f;
+      --bg-elevated:    #1f1d14;
+      --bg-hover:       #27251a;
+      --border:         #2e2b1e;
+      --border-focus:   #c9860a;
+
+      /* Text */
+      --text-primary:   #ede8df;
+      --text-secondary: #9a9080;
+      --text-muted:     #6e6456;
+
+      /* Amber/gold primary accent */
+      --accent-1:       #d4900d;
+      --accent-2:       #b87333;
+      --accent-grad:    linear-gradient(135deg, #e8a020 0%, #b05c10 100%);
+      --accent-soft:    rgba(212, 144, 13, 0.10);
+      --accent-glow:    rgba(212, 144, 13, 0.18);
+
+      /* Muted teal secondary */
+      --teal:           #3d8c7a;
+      --teal-soft:      rgba(61, 140, 122, 0.12);
+
+      /* Semantic */
+      --success:        #3fa96a;
       --warning:        #c97700;
-      --danger:         #ef4444;
+      --danger:         #c94040;
+
+      /* Shape */
       --radius-sm:      4px;
       --radius-md:      8px;
       --radius-lg:      12px;
       --radius-xl:      16px;
-      --shadow-sm:      0 1px 3px rgba(0,0,0,0.4);
-      --shadow-md:      0 4px 16px rgba(0,0,0,0.5);
-      --shadow-lg:      0 8px 32px rgba(0,0,0,0.6);
+
+      /* Shadows — warm tint rather than neutral black */
+      --shadow-sm:      0 1px 3px rgba(0,0,0,0.5), 0 0 0 1px rgba(212,144,13,0.04);
+      --shadow-md:      0 4px 16px rgba(0,0,0,0.6), 0 0 12px rgba(212,144,13,0.06);
+      --shadow-lg:      0 8px 32px rgba(0,0,0,0.7), 0 0 24px rgba(212,144,13,0.08);
+      --card-glow:      0 2px 8px rgba(0,0,0,0.55), 0 0 16px rgba(212,144,13,0.07);
+
       --font-sans:      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-serif:     Georgia, "Times New Roman", Times, serif;
       --font-mono:      "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
       --transition:     200ms ease;
+
+      /* Noise texture as inline SVG — subtle grain over the background */
+      --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
     }
 
     /* ── Reset & base ───────────────────────────────────────────────────────── */
@@ -43,14 +65,16 @@
 
     body {
       font-family: var(--font-sans);
-      background: var(--bg-base);
+      background-color: var(--bg-base);
+      background-image: var(--noise);
+      background-repeat: repeat;
       color: var(--text-primary);
       line-height: 1.6;
       min-height: 100vh;
     }
 
     a { color: var(--accent-1); text-decoration: none; }
-    a:hover { text-decoration: underline; }
+    a:hover { color: #e8a020; text-decoration: underline; }
     a:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 3px; border-radius: var(--radius-sm); }
 
     /* ── Layout helpers ─────────────────────────────────────────────────────── */
@@ -87,12 +111,12 @@
       width: auto;
       height: auto;
       padding: 0.75rem 1.5rem;
-      background: var(--accent-1);
-      color: #fff;
+      background: var(--accent-grad);
+      color: #1a0d00;
       border-radius: var(--radius-md);
       font-size: 0.9rem;
       font-weight: 600;
-      outline: 2px solid #fff;
+      outline: 2px solid var(--accent-1);
       outline-offset: 2px;
       text-decoration: none;
       box-shadow: var(--shadow-lg);
@@ -114,22 +138,30 @@
                   transform var(--transition), border-color var(--transition);
       text-decoration: none;
     }
-    .btn:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 3px; }
+    .btn:focus-visible {
+      outline: 2px solid var(--border-focus);
+      outline-offset: 3px;
+      box-shadow: 0 0 0 5px rgba(212, 144, 13, 0.12);
+    }
     .btn:active { transform: scale(0.98); }
 
     .btn-primary {
       background: var(--accent-grad);
-      color: #fff;
-      box-shadow: 0 2px 8px rgba(79, 107, 239, 0.35);
+      color: #1a0d00;
+      font-weight: 600;
+      box-shadow: 0 2px 10px rgba(184, 115, 51, 0.35);
     }
-    .btn-primary:hover { box-shadow: 0 4px 14px rgba(79, 107, 239, 0.5); filter: brightness(1.1); }
+    .btn-primary:hover {
+      box-shadow: 0 4px 18px rgba(212, 144, 13, 0.5);
+      filter: brightness(1.08);
+    }
 
     .btn-secondary {
       background: var(--bg-elevated);
       color: var(--text-primary);
       border-color: var(--border);
     }
-    .btn-secondary:hover { background: var(--bg-hover); border-color: var(--accent-1); }
+    .btn-secondary:hover { background: var(--bg-hover); border-color: var(--accent-2); }
 
     .btn-ghost {
       background: transparent;
@@ -146,7 +178,7 @@
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
       padding: 1.5rem;
-      box-shadow: var(--shadow-sm);
+      box-shadow: var(--card-glow);
     }
 
     /* ── Page views (landing vs viewer) ────────────────────────────────────── */
@@ -164,9 +196,9 @@
       position: sticky;
       top: 0;
       z-index: 100;
-      background: rgba(14, 17, 23, 0.92);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+      background: rgba(15, 14, 12, 0.94);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
     }
     .site-header .container {
       display: flex;
@@ -175,13 +207,15 @@
       gap: 1rem;
     }
     .site-logo {
-      font-size: 1rem;
+      font-family: var(--font-serif);
+      font-size: 1.05rem;
       font-weight: 700;
+      font-style: italic;
       background: var(--accent-grad);
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
-      letter-spacing: -0.01em;
+      letter-spacing: 0.01em;
     }
     .header-actions { display: flex; align-items: center; gap: 0.75rem; }
 
@@ -189,37 +223,57 @@
     .hero {
       padding: 4.5rem 0 3.5rem;
       text-align: center;
+      position: relative;
     }
+    /* Warm radial glow behind the hero title */
+    .hero::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 700px;
+      height: 380px;
+      background: radial-gradient(ellipse at 50% 30%,
+        rgba(212, 144, 13, 0.09) 0%,
+        rgba(176, 92, 16, 0.05) 40%,
+        transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .hero .container { position: relative; z-index: 1; }
     .hero-badge {
       display: inline-block;
       background: var(--accent-soft);
-      color: var(--accent-1);
-      border: 1px solid rgba(79,107,239,0.3);
+      color: #c9860a;
+      border: 1px solid rgba(212, 144, 13, 0.28);
       border-radius: 100px;
-      font-size: 0.78rem;
+      font-size: 0.75rem;
       font-weight: 600;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.09em;
       text-transform: uppercase;
-      padding: 0.25rem 0.85rem;
-      margin-bottom: 1.25rem;
+      padding: 0.28rem 0.9rem;
+      margin-bottom: 1.35rem;
     }
     .hero-title {
-      font-size: clamp(2rem, 6vw, 3.25rem);
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      line-height: 1.15;
-      margin-bottom: 1rem;
-      background: var(--accent-grad);
+      font-family: var(--font-serif);
+      font-size: clamp(2rem, 6vw, 3.4rem);
+      font-weight: 700;
+      font-style: italic;
+      letter-spacing: 0.01em;
+      line-height: 1.18;
+      margin-bottom: 1.1rem;
+      background: linear-gradient(145deg, #f0c060 0%, #d4900d 45%, #a05010 100%);
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
     }
     .hero-desc {
-      font-size: 1.1rem;
+      font-size: 1.05rem;
       color: var(--text-secondary);
-      max-width: 560px;
+      max-width: 540px;
       margin: 0 auto 2.5rem;
-      line-height: 1.65;
+      line-height: 1.7;
     }
     .hero-actions {
       display: flex;
@@ -230,22 +284,38 @@
     .hero-actions .btn { font-size: 0.95rem; padding: 0.65rem 1.5rem; }
 
     /* ── Export zone (drag-drop on landing) ─────────────────────────────────── */
+    @keyframes zone-pulse {
+      0%, 100% { border-color: var(--accent-1); box-shadow: 0 0 0 0 var(--accent-glow); }
+      50%       { border-color: #e8a020;        box-shadow: 0 0 0 6px transparent; }
+    }
+
     .export-zone {
-      border: 2px dashed var(--border);
+      border: 2px dashed rgba(46, 43, 30, 0.9);
       border-radius: var(--radius-xl);
-      padding: 2.5rem 1.5rem;
+      padding: 2.75rem 1.5rem;
       text-align: center;
       cursor: pointer;
-      transition: border-color var(--transition), background var(--transition);
+      transition: border-color var(--transition), background var(--transition),
+                  box-shadow var(--transition);
       position: relative;
       margin: 2.5rem 0;
+      background: rgba(23, 22, 15, 0.5);
     }
-    .export-zone:hover,
+    .export-zone:hover {
+      background: rgba(212, 144, 13, 0.05);
+      animation: zone-pulse 1.8s ease-in-out infinite;
+    }
     .export-zone.drag-over {
       border-color: var(--accent-1);
       background: var(--accent-soft);
+      box-shadow: 0 0 0 4px var(--accent-glow);
+      animation: none;
     }
-    .export-zone:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 3px; }
+    .export-zone:focus-visible {
+      outline: 2px solid var(--border-focus);
+      outline-offset: 3px;
+      animation: none;
+    }
     .export-zone input[type="file"] {
       position: absolute;
       inset: 0;
@@ -258,13 +328,15 @@
       width: 48px;
       height: 48px;
       margin: 0 auto 1rem;
-      opacity: 0.5;
+      color: var(--accent-1);
+      opacity: 0.6;
     }
     .export-zone-title {
       font-size: 1.05rem;
       font-weight: 600;
       color: var(--text-primary);
       margin-bottom: 0.4rem;
+      letter-spacing: 0.01em;
     }
     .export-zone-hint {
       font-size: 0.85rem;
@@ -283,14 +355,17 @@
     /* ── Section headings ───────────────────────────────────────────────────── */
     .section { padding: 3rem 0; border-top: 1px solid var(--border); }
     .section-title {
-      font-size: 1.4rem;
+      font-family: var(--font-serif);
+      font-size: 1.45rem;
       font-weight: 700;
-      letter-spacing: -0.02em;
+      font-style: italic;
+      letter-spacing: 0.01em;
+      color: var(--text-primary);
       margin-bottom: 1.5rem;
     }
 
     /* ── Steps ──────────────────────────────────────────────────────────────── */
-    .steps { display: flex; flex-direction: column; gap: 1rem; }
+    .steps { display: flex; flex-direction: column; gap: 0.85rem; }
     .step {
       display: flex;
       gap: 1.25rem;
@@ -299,71 +374,97 @@
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
       padding: 1.1rem 1.25rem;
+      box-shadow: var(--card-glow);
+      transition: border-color var(--transition);
     }
+    .step:hover { border-color: rgba(212, 144, 13, 0.25); }
     .step-num {
       flex-shrink: 0;
-      width: 28px; height: 28px;
+      width: 26px; height: 26px;
       border-radius: 50%;
       background: var(--accent-grad);
-      color: #fff;
-      font-size: 0.8rem;
+      color: #1a0d00;
+      font-size: 0.75rem;
       font-weight: 700;
+      font-family: var(--font-serif);
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-top: 0.1rem;
+      margin-top: 0.15rem;
+      box-shadow: 0 0 8px rgba(212, 144, 13, 0.3);
     }
     .step-body { font-size: 0.95rem; color: var(--text-secondary); }
     .step-body strong { color: var(--text-primary); }
     .step-body code {
       font-family: var(--font-mono);
-      font-size: 0.85em;
+      font-size: 0.82em;
       background: var(--bg-elevated);
-      border: 1px solid var(--border);
+      border: 1px solid rgba(212, 144, 13, 0.15);
       border-radius: var(--radius-sm);
       padding: 0.1em 0.4em;
-      color: var(--text-primary);
+      color: #c9a060;
     }
 
-    /* ── Code block ─────────────────────────────────────────────────────────── */
-    .code-block-wrapper { position: relative; }
+    /* ── Code block (terminal style) ────────────────────────────────────────── */
+    .code-block-wrapper {
+      position: relative;
+      border-radius: var(--radius-lg);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.65), 0 0 0 1px rgba(212,144,13,0.08);
+    }
     .code-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: var(--bg-elevated);
-      border: 1px solid var(--border);
-      border-bottom: none;
+      background: #141210;
+      border: 1px solid #242018;
+      border-bottom: 1px solid #1c1a12;
       border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-      padding: 0.6rem 1rem;
+      padding: 0.55rem 1rem;
+      gap: 0.75rem;
+    }
+    /* Fake window control dots */
+    .code-header::before {
+      content: "";
+      display: inline-block;
+      width: 48px;
+      height: 12px;
+      background:
+        radial-gradient(circle at 6px 6px,  #c94040 5px, transparent 5px),
+        radial-gradient(circle at 22px 6px, #c97700 5px, transparent 5px),
+        radial-gradient(circle at 38px 6px, #3fa96a 5px, transparent 5px);
+      flex-shrink: 0;
     }
     .code-lang {
       font-family: var(--font-mono);
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       color: var(--text-muted);
       text-transform: uppercase;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.08em;
+      flex: 1;
+      text-align: center;
     }
     .code-scroll {
-      background: var(--bg-elevated);
-      border: 1px solid var(--border);
+      background: #0c0b09;
+      border: 1px solid #242018;
+      border-top: none;
       border-radius: 0 0 var(--radius-lg) var(--radius-lg);
       overflow: auto;
       max-height: 420px;
+      box-shadow: inset 0 2px 8px rgba(0,0,0,0.5);
     }
     .code-scroll pre {
       font-family: var(--font-mono);
       font-size: 0.78rem;
-      line-height: 1.6;
-      color: #c9d1d9;
-      padding: 1rem 1.25rem;
+      line-height: 1.65;
+      color: #c8bfa8;
+      padding: 1.1rem 1.35rem;
       white-space: pre;
       tab-size: 2;
     }
     .code-loading, .code-error {
       font-family: var(--font-mono);
       font-size: 0.85rem;
-      padding: 1.5rem 1.25rem;
+      padding: 1.5rem 1.35rem;
       color: var(--text-secondary);
     }
     .code-error { color: var(--danger); }
@@ -387,31 +488,112 @@
       align-items: flex-start;
       background: var(--bg-surface);
       border: 1px solid var(--border);
+      border-left: 3px solid transparent;
       border-radius: var(--radius-lg);
       padding: 1rem 1.25rem;
+      cursor: pointer;
+      transition: border-color var(--transition), background var(--transition),
+                  box-shadow var(--transition);
+      user-select: none;
+      box-shadow: var(--card-glow);
+    }
+    .how-it-works-item:hover {
+      border-color: var(--border);
+      border-left-color: var(--accent-1);
+      background: var(--bg-elevated);
+    }
+    .how-it-works-item:focus-visible {
+      outline: 2px solid var(--border-focus);
+      outline-offset: 2px;
+      border-radius: var(--radius-lg);
+    }
+    .how-it-works-item.active {
+      border-color: var(--border);
+      border-left-color: var(--accent-1);
+      background: var(--bg-elevated);
+      box-shadow: 0 0 0 1px rgba(212, 144, 13, 0.15) inset, var(--card-glow);
     }
     .how-it-works-icon {
       flex-shrink: 0;
       width: 36px;
       height: 36px;
       border-radius: var(--radius-md);
-      background: var(--accent-soft);
+      background: rgba(212, 144, 13, 0.08);
+      border: 1px solid rgba(212, 144, 13, 0.15);
       display: flex;
       align-items: center;
       justify-content: center;
       margin-top: 0.1rem;
     }
-    .how-it-works-icon svg { width: 18px; height: 18px; stroke: var(--accent-1); fill: none; }
+    .how-it-works-icon svg { width: 17px; height: 17px; stroke: var(--accent-1); fill: none; }
     .how-it-works-label {
       font-size: 0.9rem;
       font-weight: 600;
       color: var(--text-primary);
       margin-bottom: 0.25rem;
+      letter-spacing: 0.01em;
     }
     .how-it-works-desc {
       font-size: 0.85rem;
       color: var(--text-secondary);
       line-height: 1.55;
+    }
+
+    /* ── Code line numbers + highlighting ──────────────────────────────────── */
+    .code-scroll pre {
+      counter-reset: code-line;
+    }
+    .code-line {
+      display: block;
+      counter-increment: code-line;
+      padding-left: 3.5rem;
+      position: relative;
+      border-left: 2px solid transparent;
+      transition: background 150ms ease, border-color 150ms ease;
+    }
+    .code-line::before {
+      content: counter(code-line);
+      position: absolute;
+      left: 0;
+      width: 3rem;
+      text-align: right;
+      padding-right: 0.75rem;
+      color: var(--text-muted);
+      opacity: 0.45;
+      font-size: 0.72rem;
+      line-height: inherit;
+      user-select: none;
+      pointer-events: none;
+    }
+    .code-line.highlighted {
+      background: rgba(217, 162, 46, 0.12);
+      border-left-color: rgba(217, 162, 46, 0.7);
+    }
+
+    /* ── Two-column script walkthrough layout ───────────────────────────────── */
+    .script-walkthrough {
+      display: grid;
+      grid-template-columns: 3fr 2fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+    .script-walkthrough .code-block-wrapper {
+      position: sticky;
+      top: 5rem;
+    }
+    .script-walkthrough .code-scroll {
+      max-height: calc(100vh - 12rem);
+    }
+    @media (max-width: 768px) {
+      .script-walkthrough {
+        grid-template-columns: 1fr;
+      }
+      .script-walkthrough .code-block-wrapper {
+        position: static;
+      }
+      .script-walkthrough .code-scroll {
+        max-height: 420px;
+      }
     }
 
     /* ── Security section ───────────────────────────────────────────────────── */
@@ -425,12 +607,16 @@
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
       padding: 1.1rem 1.25rem;
+      box-shadow: var(--card-glow);
+      transition: border-color var(--transition);
     }
+    .security-item:hover { border-color: rgba(61, 140, 122, 0.3); }
     .security-item-title {
       font-size: 0.9rem;
       font-weight: 600;
-      color: var(--text-primary);
+      color: var(--teal);
       margin-bottom: 0.4rem;
+      letter-spacing: 0.01em;
     }
     .security-item-body {
       font-size: 0.85rem;
@@ -480,12 +666,12 @@
 
     /* ── Privacy banner ─────────────────────────────────────────────────────── */
     .privacy-banner {
-      background: rgba(34, 197, 94, 0.08);
-      border: 1px solid rgba(34, 197, 94, 0.25);
+      background: var(--teal-soft);
+      border: 1px solid rgba(61, 140, 122, 0.28);
       border-radius: var(--radius-md);
       padding: 0.6rem 1rem;
       font-size: 0.8rem;
-      color: #86efac;
+      color: #5abca8;
       display: flex;
       align-items: center;
       gap: 0.5rem;
@@ -594,6 +780,7 @@
     .search-bar input:focus {
       outline: none;
       border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(212, 144, 13, 0.12);
     }
     .search-icon {
       position: absolute;
@@ -706,9 +893,15 @@
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
       padding: 1rem 1.1rem;
-      transition: border-color var(--transition), background var(--transition);
+      box-shadow: var(--card-glow);
+      transition: border-color var(--transition), background var(--transition),
+                  box-shadow var(--transition);
     }
-    .station-card:hover { border-color: var(--accent-1); background: var(--bg-elevated); }
+    .station-card:hover {
+      border-color: rgba(212, 144, 13, 0.35);
+      background: var(--bg-elevated);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.6), 0 0 20px rgba(212, 144, 13, 0.1);
+    }
     .station-name {
       font-size: 0.92rem;
       font-weight: 600;
@@ -737,23 +930,25 @@
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
       padding: 1.1rem 1.25rem;
+      box-shadow: var(--card-glow);
     }
     .summary-label {
-      font-size: 0.75rem;
+      font-size: 0.73rem;
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--text-muted);
+      letter-spacing: 0.07em;
+      color: var(--teal);
       margin-bottom: 0.4rem;
     }
     .summary-value {
-      font-size: 1.75rem;
-      font-weight: 800;
-      background: var(--accent-grad);
+      font-family: var(--font-serif);
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(145deg, #f0c060 0%, #d4900d 55%, #a05010 100%);
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
-      line-height: 1.2;
+      line-height: 1.15;
     }
     .summary-sub {
       font-size: 0.78rem;
@@ -766,6 +961,7 @@
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
       padding: 1.1rem 1.25rem;
+      box-shadow: var(--card-glow);
     }
     .summary-detail-title {
       font-size: 0.88rem;
@@ -936,92 +1132,128 @@
         </ol>
       </section>
 
-      <!-- ── Exporter script ───────────────────────────────────────────── -->
+      <!-- ── Script walkthrough: two-column layout ──────────────────────── -->
       <section class="section" id="script-section" aria-labelledby="script-heading">
-        <h2 class="section-title" id="script-heading">Exporter Script</h2>
-        <div class="code-block-wrapper" role="region" aria-label="Exporter script code">
-          <div class="code-header">
-            <span class="code-lang">javascript</span>
-            <div style="display:flex;align-items:center;gap:0.75rem;">
-              <span class="copy-feedback" id="copy-feedback" aria-live="polite" aria-atomic="true">Copied!</span>
-              <button class="btn btn-secondary btn-sm" id="copy-btn" type="button" aria-label="Copy script to clipboard">
-                Copy to Clipboard
-              </button>
-            </div>
-          </div>
-          <div class="code-scroll" id="code-scroll-area">
-            <pre class="code-loading" id="script-pre">Loading script...</pre>
-          </div>
-        </div>
-      </section>
+        <div class="script-walkthrough">
 
-      <!-- ── How the script works ──────────────────────────────────────── -->
-      <section class="section" id="how-it-works" aria-labelledby="how-it-works-heading">
-        <h2 class="section-title" id="how-it-works-heading">How the Script Works</h2>
-        <div class="how-it-works-list">
-          <div class="how-it-works-item">
-            <div class="how-it-works-icon">
-              <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
-            </div>
-            <div>
-              <div class="how-it-works-label">Domain check</div>
-              <div class="how-it-works-desc">Verifies the script is running on pandora.com. Exits immediately with an error if not.</div>
-            </div>
-          </div>
-          <div class="how-it-works-item">
-            <div class="how-it-works-icon">
-              <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-            </div>
-            <div>
-              <div class="how-it-works-label">Login</div>
-              <div class="how-it-works-desc">Prompts for your email and password, then authenticates with Pandora's API over HTTPS. Your password is cleared from memory immediately after login.</div>
+          <!-- Left column: code block -->
+          <div>
+            <h2 class="section-title" id="script-heading">Exporter Script</h2>
+            <div class="code-block-wrapper" role="region" aria-label="Exporter script code">
+              <div class="code-header">
+                <span class="code-lang">javascript</span>
+                <div style="display:flex;align-items:center;gap:0.75rem;">
+                  <span class="copy-feedback" id="copy-feedback" aria-live="polite" aria-atomic="true">Copied!</span>
+                  <button class="btn btn-secondary btn-sm" id="copy-btn" type="button" aria-label="Copy script to clipboard">
+                    Copy to Clipboard
+                  </button>
+                </div>
+              </div>
+              <div class="code-scroll" id="code-scroll-area">
+                <pre class="code-loading" id="script-pre">Loading script...</pre>
+              </div>
             </div>
           </div>
-          <div class="how-it-works-item">
-            <div class="how-it-works-icon">
-              <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-            </div>
-            <div>
-              <div class="how-it-works-label">Fetch stations</div>
-              <div class="how-it-works-desc">Retrieves all your stations with full pagination (handles accounts with 250+ stations).</div>
+
+          <!-- Right column: how it works -->
+          <div>
+            <h2 class="section-title" id="how-it-works-heading">How the Script Works</h2>
+            <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.85rem;">Click a step to highlight the relevant lines in the script.</p>
+            <div class="how-it-works-list" id="how-it-works">
+              <div class="how-it-works-item"
+                   data-lines="43-50"
+                   role="button"
+                   tabindex="0"
+                   aria-label="Domain check — click to highlight in script">
+                <div class="how-it-works-icon">
+                  <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+                </div>
+                <div>
+                  <div class="how-it-works-label">Domain check</div>
+                  <div class="how-it-works-desc">Verifies the script is running on pandora.com. Exits immediately with an error if not.</div>
+                </div>
+              </div>
+              <div class="how-it-works-item"
+                   data-lines="118-132,309-317"
+                   role="button"
+                   tabindex="0"
+                   aria-label="Login — click to highlight in script">
+                <div class="how-it-works-icon">
+                  <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                </div>
+                <div>
+                  <div class="how-it-works-label">Login</div>
+                  <div class="how-it-works-desc">Prompts for your email and password, then authenticates with Pandora's API over HTTPS. Your password is cleared from memory immediately after login.</div>
+                </div>
+              </div>
+              <div class="how-it-works-item"
+                   data-lines="188-199"
+                   role="button"
+                   tabindex="0"
+                   aria-label="Fetch stations — click to highlight in script">
+                <div class="how-it-works-icon">
+                  <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                </div>
+                <div>
+                  <div class="how-it-works-label">Fetch stations</div>
+                  <div class="how-it-works-desc">Retrieves all your stations with full pagination (handles accounts with 250+ stations).</div>
+                </div>
+              </div>
+              <div class="how-it-works-item"
+                   data-lines="201-253"
+                   role="button"
+                   tabindex="0"
+                   aria-label="Fetch thumbs — click to highlight in script">
+                <div class="how-it-works-icon">
+                  <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 00-6 0v4"/><path d="M5 9h14l1 12H4L5 9z"/></svg>
+                </div>
+                <div>
+                  <div class="how-it-works-label">Fetch thumbs</div>
+                  <div class="how-it-works-desc">For each station, fetches all thumbs up and thumbs down with pagination. Shows progress as <code>[12/47]</code> in the console. Rate-limit aware with automatic retry.</div>
+                </div>
+              </div>
+              <div class="how-it-works-item"
+                   data-lines="255-280"
+                   role="button"
+                   tabindex="0"
+                   aria-label="Fetch collection — click to highlight in script">
+                <div class="how-it-works-icon">
+                  <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+                </div>
+                <div>
+                  <div class="how-it-works-label">Fetch collection</div>
+                  <div class="how-it-works-desc">Retrieves your saved songs, albums, artists, and playlists with pagination.</div>
+                </div>
+              </div>
+              <div class="how-it-works-item"
+                   data-lines="134-168,348-382"
+                   role="button"
+                   tabindex="0"
+                   aria-label="Download files — click to highlight in script">
+                <div class="how-it-works-icon">
+                  <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </div>
+                <div>
+                  <div class="how-it-works-label">Download files</div>
+                  <div class="how-it-works-desc">Downloads three files: the full raw JSON export, a sanitized version (safe to share, with internal IDs stripped), and a CSV of liked tracks for importing into Spotify or YouTube Music.</div>
+                </div>
+              </div>
+              <div class="how-it-works-item"
+                   data-lines="403-418"
+                   role="button"
+                   tabindex="0"
+                   aria-label="Logout — click to highlight in script">
+                <div class="how-it-works-icon">
+                  <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </div>
+                <div>
+                  <div class="how-it-works-label">Logout</div>
+                  <div class="how-it-works-desc">Automatically logs out of the Pandora session when the export completes (or if it fails or is aborted).</div>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="how-it-works-item">
-            <div class="how-it-works-icon">
-              <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 00-6 0v4"/><path d="M5 9h14l1 12H4L5 9z"/></svg>
-            </div>
-            <div>
-              <div class="how-it-works-label">Fetch thumbs</div>
-              <div class="how-it-works-desc">For each station, fetches all thumbs up and thumbs down with pagination. Shows progress as <code>[12/47]</code> in the console. Rate-limit aware with automatic retry.</div>
-            </div>
-          </div>
-          <div class="how-it-works-item">
-            <div class="how-it-works-icon">
-              <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
-            </div>
-            <div>
-              <div class="how-it-works-label">Fetch collection</div>
-              <div class="how-it-works-desc">Retrieves your saved songs, albums, artists, and playlists with pagination.</div>
-            </div>
-          </div>
-          <div class="how-it-works-item">
-            <div class="how-it-works-icon">
-              <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            </div>
-            <div>
-              <div class="how-it-works-label">Download files</div>
-              <div class="how-it-works-desc">Downloads three files: the full raw JSON export, a sanitized version (safe to share, with internal IDs stripped), and a CSV of liked tracks for importing into Spotify or YouTube Music.</div>
-            </div>
-          </div>
-          <div class="how-it-works-item">
-            <div class="how-it-works-icon">
-              <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            </div>
-            <div>
-              <div class="how-it-works-label">Logout</div>
-              <div class="how-it-works-desc">Automatically logs out of the Pandora session when the export completes (or if it fails or is aborted).</div>
-            </div>
-          </div>
+
         </div>
       </section>
 
@@ -1254,6 +1486,17 @@ document.getElementById("back-btn").addEventListener("click", () => {
 });
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   HTML ESCAPE UTILITY — declared early; needed by script loader and viewer
+═══════════════════════════════════════════════════════════════════════════ */
+function escHtml(str) {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    SCRIPT LOADER
 ═══════════════════════════════════════════════════════════════════════════ */
 (async () => {
@@ -1264,7 +1507,10 @@ document.getElementById("back-btn").addEventListener("click", () => {
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const text = await resp.text();
     state.scriptText = text;
-    pre.textContent = text;
+    const lines = text.split("\n");
+    pre.innerHTML = lines.map((line, i) =>
+      `<span class="code-line" data-line="${i + 1}">${escHtml(line)}</span>`
+    ).join("\n");
     pre.className = "";
   } catch (err) {
     pre.className = "code-error";
@@ -1276,6 +1522,77 @@ document.getElementById("back-btn").addEventListener("click", () => {
       "Error: " + err.message;
   }
 })();
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   HOW IT WORKS — interactive line highlighting
+═══════════════════════════════════════════════════════════════════════════ */
+function parseLineRanges(attr) {
+  /* attr = "43-50" or "118-132,309-317" — returns flat array of 1-based line numbers */
+  const nums = [];
+  for (const part of attr.split(",")) {
+    const [from, to] = part.trim().split("-").map(Number);
+    const end = to ?? from;
+    for (let n = from; n <= end; n++) nums.push(n);
+  }
+  return nums;
+}
+
+function highlightLines(lineNums) {
+  const pre = document.getElementById("script-pre");
+  const scrollArea = document.getElementById("code-scroll-area");
+  /* Remove any existing highlights */
+  pre.querySelectorAll(".code-line.highlighted").forEach(el => el.classList.remove("highlighted"));
+
+  const lineSet = new Set(lineNums);
+  const spans = pre.querySelectorAll(".code-line");
+  let firstHighlighted = null;
+
+  spans.forEach(span => {
+    const n = Number(span.dataset.line);
+    if (lineSet.has(n)) {
+      span.classList.add("highlighted");
+      if (!firstHighlighted) firstHighlighted = span;
+    }
+  });
+
+  if (firstHighlighted) {
+    /* Scroll the code area so the first highlighted line is near the top */
+    const spanTop = firstHighlighted.offsetTop;
+    scrollArea.scrollTo({ top: spanTop - 32, behavior: "smooth" });
+  }
+}
+
+function clearHighlight() {
+  const pre = document.getElementById("script-pre");
+  pre.querySelectorAll(".code-line.highlighted").forEach(el => el.classList.remove("highlighted"));
+}
+
+function activateHowItWorksItem(item) {
+  document.querySelectorAll(".how-it-works-item").forEach(el => el.classList.remove("active"));
+  if (item) {
+    item.classList.add("active");
+    const lines = parseLineRanges(item.dataset.lines ?? "");
+    if (lines.length) highlightLines(lines);
+  }
+}
+
+document.querySelectorAll(".how-it-works-item").forEach(item => {
+  item.addEventListener("click", () => activateHowItWorksItem(item));
+  item.addEventListener("keydown", e => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      activateHowItWorksItem(item);
+    }
+  });
+});
+
+document.getElementById("code-scroll-area").addEventListener("click", e => {
+  /* Click on a highlighted line clears; click anywhere else also clears */
+  if (!e.target.closest(".how-it-works-item")) {
+    document.querySelectorAll(".how-it-works-item").forEach(el => el.classList.remove("active"));
+    clearHighlight();
+  }
+});
 
 document.getElementById("copy-btn").addEventListener("click", () => {
   const text = state.scriptText;
@@ -1801,13 +2118,6 @@ document.getElementById("subtabs-nav").addEventListener("keydown", e => {
 /* ═══════════════════════════════════════════════════════════════════════════
    UTILITIES
 ═══════════════════════════════════════════════════════════════════════════ */
-function escHtml(str) {
-  return String(str ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
 
 function setText(id, val) {
   const el = document.getElementById(id);
