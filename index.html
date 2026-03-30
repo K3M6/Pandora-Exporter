@@ -1631,17 +1631,24 @@ setupDropZone(
 function loadFile(file) {
   const reader = new FileReader();
   reader.onload = e => {
+    let data;
     try {
-      const data = JSON.parse(e.target.result);
-      if (!data || typeof data !== "object" || Array.isArray(data)) {
-        alert("This doesn't look like a Pandora export file. Expected a JSON object.");
-        return;
-      }
+      data = JSON.parse(e.target.result);
+    } catch (parseErr) {
+      alert("Could not parse that file as JSON. Make sure you are loading a pandora_export_*.json file.\n\n" + parseErr.message);
+      return;
+    }
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      alert("This doesn't look like a Pandora export file. Expected a JSON object.");
+      return;
+    }
+    try {
       state.exportData = data;
       initViewer(data, file.name);
       showPage("page-viewer");
-    } catch {
-      alert("Could not parse that file as JSON. Make sure you are loading a pandora_export_*.json file.");
+    } catch (viewErr) {
+      console.error("Viewer error:", viewErr);
+      alert("Failed to load the export viewer:\n\n" + viewErr.message + "\n\nCheck the browser console for details.");
     }
   };
   reader.readAsText(file);
