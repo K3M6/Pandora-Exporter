@@ -571,21 +571,64 @@
     }
 
     /* ── Two-column script walkthrough layout ───────────────────────────────── */
+
+    /*
+     * Break out of the 860px .container so the two columns have room to breathe.
+     * The section is inside .container (max-width: 860px; padding: 0 1.25rem).
+     * We use negative horizontal margins to reclaim that space, then add our own
+     * padding so the content edges stay aligned with the rest of the page.
+     * The 1.25rem matches .container's own padding value.
+     */
+    #script-section {
+      margin-left:  -1.25rem;
+      margin-right: -1.25rem;
+      padding-left:  1.25rem;
+      padding-right: 1.25rem;
+    }
+
     .script-walkthrough {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1.25rem;
+      /*
+       * Left column (code): fixed 520px so the code block always has enough room
+       * to show ~80-char lines without horizontal scrolling in most cases.
+       * Right column (steps): takes whatever remains.
+       * minmax(0, 1fr) is critical — it allows the column to shrink below its
+       * content's intrinsic size, which is what makes overflow + scroll work.
+       */
+      grid-template-columns: minmax(0, 520px) minmax(0, 1fr);
+      gap: 1.5rem;
       align-items: start;
     }
+
+    /* Both direct grid children must have min-width: 0 so the grid does not
+       expand them to their content's intrinsic width. Without this, a <pre>
+       with long lines pushes the left column wider than its track, blowing
+       out the entire grid. */
+    .script-walkthrough > div {
+      min-width: 0;
+    }
+
     .script-walkthrough .code-block-wrapper {
       position: sticky;
       top: 5rem;
     }
+
     .script-walkthrough .code-scroll {
-      max-height: calc(100vh - 12rem);
-      overflow: auto;
+      /* Override the base 420px max-height so the code panel fills the viewport
+         and the user can scroll through the full script without leaving the page. */
+      max-height: min(calc(100vh - 12rem), 600px);
+      overflow-x: auto;
+      overflow-y: auto;
     }
-    @media (max-width: 768px) {
+
+    @media (max-width: 860px) {
+      /* At narrower viewports, stack vertically and undo the container breakout. */
+      #script-section {
+        margin-left:  0;
+        margin-right: 0;
+        padding-left:  0;
+        padding-right: 0;
+      }
       .script-walkthrough {
         grid-template-columns: 1fr;
       }
