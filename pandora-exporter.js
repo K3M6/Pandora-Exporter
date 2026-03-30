@@ -102,8 +102,8 @@
       if (retries >= MAX_RETRIES) {
         throw new Error(`Rate limited on ${path} after ${MAX_RETRIES} retries. Try again in a few minutes.`);
       }
-      const raw = parseInt(res.headers.get("Retry-After") || "25", 10);
-      const wait = Math.min(isNaN(raw) ? 25 : raw, MAX_RETRY_WAIT);
+      const raw = parseInt(res.headers.get("Retry-After") || "30", 10);
+      const wait = Math.min(isNaN(raw) ? 30 : raw, MAX_RETRY_WAIT);
       console.warn(`  Pandora is asking us to slow down. Waiting ${wait}s (retry ${retries + 1}/${MAX_RETRIES})...`);
       await sleep(wait * 1000);
       return api(path, body, authToken, retries + 1);
@@ -255,8 +255,8 @@
       body: JSON.stringify({ query, variables }),
     });
     if (res.status === 429) {
-      console.warn("  Rate limited on GraphQL, waiting 25s...");
-      await sleep(25000);
+      console.warn("  Rate limited on GraphQL, waiting 30s...");
+      await sleep(30000);
       return graphql(query, variables, authToken);
     }
     if (!res.ok) {
