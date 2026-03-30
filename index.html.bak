@@ -1,0 +1,1950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pandora Data Exporter</title>
+  <meta name="description" content="Export your Pandora stations, thumbs, and saved music library. Runs entirely in your browser." />
+  <style>
+    /* ── Design tokens ──────────────────────────────────────────────────────── */
+    :root {
+      /* Warm dark bases — deep charcoal with a faint amber undertone */
+      --bg-base:        #0f0e0c;
+      --bg-surface:     #17160f;
+      --bg-elevated:    #1f1d14;
+      --bg-hover:       #27251a;
+      --border:         #2e2b1e;
+      --border-focus:   #c9860a;
+
+      /* Text */
+      --text-primary:   #ede8df;
+      --text-secondary: #9a9080;
+      --text-muted:     #6e6456;
+
+      /* Amber/gold primary accent */
+      --accent-1:       #d4900d;
+      --accent-2:       #b87333;
+      --accent-grad:    linear-gradient(135deg, #e8a020 0%, #b05c10 100%);
+      --accent-soft:    rgba(212, 144, 13, 0.10);
+      --accent-glow:    rgba(212, 144, 13, 0.18);
+
+      /* Muted teal secondary */
+      --teal:           #3d8c7a;
+      --teal-soft:      rgba(61, 140, 122, 0.12);
+
+      /* Semantic */
+      --success:        #3fa96a;
+      --warning:        #c97700;
+      --danger:         #c94040;
+
+      /* Shape */
+      --radius-sm:      4px;
+      --radius-md:      8px;
+      --radius-lg:      12px;
+      --radius-xl:      16px;
+
+      /* Shadows — warm tint rather than neutral black */
+      --shadow-sm:      0 1px 3px rgba(0,0,0,0.5), 0 0 0 1px rgba(212,144,13,0.04);
+      --shadow-md:      0 4px 16px rgba(0,0,0,0.6), 0 0 12px rgba(212,144,13,0.06);
+      --shadow-lg:      0 8px 32px rgba(0,0,0,0.7), 0 0 24px rgba(212,144,13,0.08);
+      --card-glow:      0 2px 8px rgba(0,0,0,0.55), 0 0 16px rgba(212,144,13,0.07);
+
+      --font-sans:      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-serif:     Georgia, "Times New Roman", Times, serif;
+      --font-mono:      "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      --transition:     200ms ease;
+
+      /* Noise texture as inline SVG — subtle grain over the background */
+      --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+    }
+
+    /* ── Reset & base ───────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { font-size: 16px; scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-base);
+      background-image: var(--noise);
+      background-repeat: repeat;
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    a { color: var(--accent-1); text-decoration: none; }
+    a:hover { color: #e8a020; text-decoration: underline; }
+    a:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 3px; border-radius: var(--radius-sm); }
+
+    /* ── Layout helpers ─────────────────────────────────────────────────────── */
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 1.25rem;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px; height: 1px;
+      padding: 0; margin: -1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .skip-link {
+      position: absolute;
+      left: -9999px;
+      top: auto;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      z-index: 200;
+    }
+    .skip-link:focus {
+      position: fixed;
+      top: 0.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      width: auto;
+      height: auto;
+      padding: 0.75rem 1.5rem;
+      background: var(--accent-grad);
+      color: #1a0d00;
+      border-radius: var(--radius-md);
+      font-size: 0.9rem;
+      font-weight: 600;
+      outline: 2px solid var(--accent-1);
+      outline-offset: 2px;
+      text-decoration: none;
+      box-shadow: var(--shadow-lg);
+    }
+
+    /* ── Buttons ────────────────────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.55rem 1.2rem;
+      border-radius: var(--radius-md);
+      font-family: var(--font-sans);
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: background var(--transition), box-shadow var(--transition),
+                  transform var(--transition), border-color var(--transition);
+      text-decoration: none;
+    }
+    .btn:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 3px; }
+    .btn:active { transform: scale(0.98); }
+
+    .btn-primary {
+      background: var(--accent-grad);
+      color: #1a0d00;
+      font-weight: 600;
+      box-shadow: 0 2px 10px rgba(184, 115, 51, 0.35);
+    }
+    .btn-primary:hover {
+      box-shadow: 0 4px 18px rgba(212, 144, 13, 0.5);
+      filter: brightness(1.08);
+    }
+
+    .btn-secondary {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      border-color: var(--border);
+    }
+    .btn-secondary:hover { background: var(--bg-hover); border-color: var(--accent-2); }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-secondary);
+      border-color: transparent;
+    }
+    .btn-ghost:hover { background: var(--bg-elevated); color: var(--text-primary); }
+
+    .btn-sm { padding: 0.35rem 0.8rem; font-size: 0.8rem; }
+
+    /* ── Cards ──────────────────────────────────────────────────────────────── */
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      box-shadow: var(--card-glow);
+    }
+
+    /* ── Page views (landing vs viewer) ────────────────────────────────────── */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* ════════════════════════════════════════════════════════════════════════
+       LANDING PAGE
+    ════════════════════════════════════════════════════════════════════════ */
+
+    /* ── Header ─────────────────────────────────────────────────────────────── */
+    .site-header {
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(15, 14, 12, 0.94);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .site-header .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .site-logo {
+      font-family: var(--font-serif);
+      font-size: 1.05rem;
+      font-weight: 700;
+      font-style: italic;
+      background: var(--accent-grad);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 0.01em;
+    }
+    .header-actions { display: flex; align-items: center; gap: 0.75rem; }
+
+    /* ── Hero ───────────────────────────────────────────────────────────────── */
+    .hero {
+      padding: 4.5rem 0 3.5rem;
+      text-align: center;
+      position: relative;
+    }
+    /* Warm radial glow behind the hero title */
+    .hero::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 700px;
+      height: 380px;
+      background: radial-gradient(ellipse at 50% 30%,
+        rgba(212, 144, 13, 0.09) 0%,
+        rgba(176, 92, 16, 0.05) 40%,
+        transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .hero .container { position: relative; z-index: 1; }
+    .hero-badge {
+      display: inline-block;
+      background: var(--accent-soft);
+      color: #c9860a;
+      border: 1px solid rgba(212, 144, 13, 0.28);
+      border-radius: 100px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      padding: 0.28rem 0.9rem;
+      margin-bottom: 1.35rem;
+    }
+    .hero-title {
+      font-family: var(--font-serif);
+      font-size: clamp(2rem, 6vw, 3.4rem);
+      font-weight: 700;
+      font-style: italic;
+      letter-spacing: 0.01em;
+      line-height: 1.18;
+      margin-bottom: 1.1rem;
+      background: linear-gradient(145deg, #f0c060 0%, #d4900d 45%, #a05010 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-desc {
+      font-size: 1.05rem;
+      color: var(--text-secondary);
+      max-width: 540px;
+      margin: 0 auto 2.5rem;
+      line-height: 1.7;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .hero-actions .btn { font-size: 0.95rem; padding: 0.65rem 1.5rem; }
+
+    /* ── Export zone (drag-drop on landing) ─────────────────────────────────── */
+    @keyframes zone-pulse {
+      0%, 100% { border-color: var(--accent-1); box-shadow: 0 0 0 0 var(--accent-glow); }
+      50%       { border-color: #e8a020;        box-shadow: 0 0 0 6px transparent; }
+    }
+
+    .export-zone {
+      border: 2px dashed rgba(46, 43, 30, 0.9);
+      border-radius: var(--radius-xl);
+      padding: 2.75rem 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color var(--transition), background var(--transition),
+                  box-shadow var(--transition);
+      position: relative;
+      margin: 2.5rem 0;
+      background: rgba(23, 22, 15, 0.5);
+    }
+    .export-zone:hover {
+      background: rgba(212, 144, 13, 0.05);
+      animation: zone-pulse 1.8s ease-in-out infinite;
+    }
+    .export-zone.drag-over {
+      border-color: var(--accent-1);
+      background: var(--accent-soft);
+      box-shadow: 0 0 0 4px var(--accent-glow);
+      animation: none;
+    }
+    .export-zone:focus-visible {
+      outline: 2px solid var(--border-focus);
+      outline-offset: 3px;
+      animation: none;
+    }
+    .export-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    .export-zone-icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 1rem;
+      color: var(--accent-1);
+      opacity: 0.6;
+    }
+    .export-zone-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.4rem;
+      letter-spacing: 0.01em;
+    }
+    .export-zone-hint {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+    .privacy-notice {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.75rem;
+    }
+
+    /* ── Section headings ───────────────────────────────────────────────────── */
+    .section { padding: 3rem 0; border-top: 1px solid var(--border); }
+    .section-title {
+      font-family: var(--font-serif);
+      font-size: 1.45rem;
+      font-weight: 700;
+      font-style: italic;
+      letter-spacing: 0.01em;
+      color: var(--text-primary);
+      margin-bottom: 1.5rem;
+    }
+
+    /* ── Steps ──────────────────────────────────────────────────────────────── */
+    .steps { display: flex; flex-direction: column; gap: 0.85rem; }
+    .step {
+      display: flex;
+      gap: 1.25rem;
+      align-items: flex-start;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.1rem 1.25rem;
+      box-shadow: var(--card-glow);
+      transition: border-color var(--transition);
+    }
+    .step:hover { border-color: rgba(212, 144, 13, 0.25); }
+    .step-num {
+      flex-shrink: 0;
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      background: var(--accent-grad);
+      color: #1a0d00;
+      font-size: 0.75rem;
+      font-weight: 700;
+      font-family: var(--font-serif);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 0.15rem;
+      box-shadow: 0 0 8px rgba(212, 144, 13, 0.3);
+    }
+    .step-body { font-size: 0.95rem; color: var(--text-secondary); }
+    .step-body strong { color: var(--text-primary); }
+    .step-body code {
+      font-family: var(--font-mono);
+      font-size: 0.82em;
+      background: var(--bg-elevated);
+      border: 1px solid rgba(212, 144, 13, 0.15);
+      border-radius: var(--radius-sm);
+      padding: 0.1em 0.4em;
+      color: #c9a060;
+    }
+
+    /* ── Code block ─────────────────────────────────────────────────────────── */
+    .code-block-wrapper { position: relative; }
+    .code-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-bottom: none;
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      padding: 0.6rem 1rem;
+    }
+    .code-lang {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .code-scroll {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+      overflow: auto;
+      max-height: 420px;
+    }
+    .code-scroll pre {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      line-height: 1.6;
+      color: #c9d1d9;
+      padding: 1rem 1.25rem;
+      white-space: pre;
+      tab-size: 2;
+    }
+    .code-loading, .code-error {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      padding: 1.5rem 1.25rem;
+      color: var(--text-secondary);
+    }
+    .code-error { color: var(--danger); }
+    .copy-feedback {
+      font-size: 0.78rem;
+      color: var(--success);
+      opacity: 0;
+      transition: opacity var(--transition);
+    }
+    .copy-feedback.show { opacity: 1; }
+
+    /* ── How it works section ──────────────────────────────────────────────── */
+    .how-it-works-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .how-it-works-item {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid transparent;
+      border-radius: var(--radius-lg);
+      padding: 1rem 1.25rem;
+      cursor: pointer;
+      transition: border-color var(--transition), background var(--transition),
+                  box-shadow var(--transition);
+      user-select: none;
+    }
+    .how-it-works-item:hover {
+      border-color: var(--border);
+      border-left-color: var(--accent-1);
+      background: var(--bg-elevated);
+    }
+    .how-it-works-item:focus-visible {
+      outline: 2px solid var(--border-focus);
+      outline-offset: 2px;
+      border-radius: var(--radius-lg);
+    }
+    .how-it-works-item.active {
+      border-color: var(--border);
+      border-left-color: var(--accent-1);
+      background: var(--bg-elevated);
+      box-shadow: 0 0 0 1px rgba(79, 107, 239, 0.2) inset;
+    }
+    .how-it-works-icon {
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-md);
+      background: var(--accent-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 0.1rem;
+    }
+    .how-it-works-icon svg { width: 18px; height: 18px; stroke: var(--accent-1); fill: none; }
+    .how-it-works-label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.25rem;
+    }
+    .how-it-works-desc {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    /* ── Code line numbers + highlighting ──────────────────────────────────── */
+    .code-scroll pre {
+      counter-reset: code-line;
+    }
+    .code-line {
+      display: block;
+      counter-increment: code-line;
+      padding-left: 3.5rem;
+      position: relative;
+      border-left: 2px solid transparent;
+      transition: background 150ms ease, border-color 150ms ease;
+    }
+    .code-line::before {
+      content: counter(code-line);
+      position: absolute;
+      left: 0;
+      width: 3rem;
+      text-align: right;
+      padding-right: 0.75rem;
+      color: var(--text-muted);
+      opacity: 0.45;
+      font-size: 0.72rem;
+      line-height: inherit;
+      user-select: none;
+      pointer-events: none;
+    }
+    .code-line.highlighted {
+      background: rgba(217, 162, 46, 0.12);
+      border-left-color: rgba(217, 162, 46, 0.7);
+    }
+
+    /* ── Security section ───────────────────────────────────────────────────── */
+    .security-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+    }
+    .security-item {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.1rem 1.25rem;
+    }
+    .security-item-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.4rem;
+    }
+    .security-item-body {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    /* ── Footer ─────────────────────────────────────────────────────────────── */
+    .site-footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem 0;
+      margin-top: 2rem;
+    }
+    .site-footer .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .footer-text { font-size: 0.82rem; color: var(--text-muted); }
+
+    /* ════════════════════════════════════════════════════════════════════════
+       VIEWER PAGE
+    ════════════════════════════════════════════════════════════════════════ */
+
+    .viewer-header {
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .viewer-header .container {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .viewer-title {
+      flex: 1;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    .viewer-title span { color: var(--text-primary); }
+
+    /* ── Privacy banner ─────────────────────────────────────────────────────── */
+    .privacy-banner {
+      background: rgba(34, 197, 94, 0.08);
+      border: 1px solid rgba(34, 197, 94, 0.25);
+      border-radius: var(--radius-md);
+      padding: 0.6rem 1rem;
+      font-size: 0.8rem;
+      color: #86efac;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* ── Tab navigation ─────────────────────────────────────────────────────── */
+    .tabs-nav {
+      display: flex;
+      gap: 2px;
+      padding: 1rem 0 0;
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tabs-nav::-webkit-scrollbar { display: none; }
+
+    .tab-btn {
+      padding: 0.75rem 1.1rem;
+      min-height: 44px;
+      font-family: var(--font-sans);
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: color var(--transition), border-color var(--transition);
+      position: relative;
+      top: 1px;
+    }
+    .tab-btn:hover { color: var(--text-primary); }
+    .tab-btn.active {
+      color: var(--accent-1);
+      border-bottom-color: var(--accent-1);
+    }
+    .tab-btn:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 3px; border-radius: var(--radius-sm); }
+    .tab-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-elevated);
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      border-radius: 100px;
+      padding: 0.1em 0.5em;
+      margin-left: 0.35rem;
+      min-width: 22px;
+    }
+    .tab-btn.active .tab-count { background: var(--accent-soft); color: var(--accent-1); }
+
+    .tab-panel { display: none; padding: 1.5rem 0; }
+    .tab-panel.active { display: block; }
+
+    /* ── Sub-tabs (Collection) ──────────────────────────────────────────────── */
+    .subtabs-nav {
+      display: flex;
+      gap: 2px;
+      margin-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .subtabs-nav::-webkit-scrollbar { display: none; }
+    .subtab-btn {
+      padding: 0.4rem 0.85rem;
+      min-height: 44px;
+      font-family: var(--font-sans);
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: color var(--transition), border-color var(--transition);
+      position: relative;
+      top: 1px;
+    }
+    .subtab-btn:hover { color: var(--text-primary); }
+    .subtab-btn.active { color: var(--accent-1); border-bottom-color: var(--accent-1); }
+    .subtab-btn:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 3px; border-radius: var(--radius-sm); }
+
+    .subtab-panel { display: none; }
+    .subtab-panel.active { display: block; }
+
+    /* ── Search bar ─────────────────────────────────────────────────────────── */
+    .search-bar {
+      position: relative;
+      margin-bottom: 1.25rem;
+    }
+    .search-bar input {
+      width: 100%;
+      padding: 0.6rem 1rem 0.6rem 2.5rem;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      font-family: var(--font-sans);
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      transition: border-color var(--transition);
+    }
+    .search-bar input::placeholder { color: var(--text-muted); }
+    .search-bar input:focus {
+      outline: none;
+      border-color: var(--border-focus);
+    }
+    .search-icon {
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    /* ── Data table ─────────────────────────────────────────────────────────── */
+    .table-wrap {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    thead { background: var(--bg-elevated); }
+    th {
+      text-align: left;
+      padding: 0.65rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+    }
+    th:hover { color: var(--text-secondary); }
+    th .sort-icon { opacity: 0.4; margin-left: 0.3rem; font-size: 0.7rem; }
+    th.sorted .sort-icon { opacity: 1; color: var(--accent-1); }
+
+    td {
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: middle;
+    }
+    td.primary { color: var(--text-primary); font-weight: 500; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg-elevated); }
+
+    /* ── Virtual list container ─────────────────────────────────────────────── */
+    .virtual-table-container {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    .virtual-table-head {
+      background: var(--bg-elevated);
+      border-bottom: 1px solid var(--border);
+      display: grid;
+    }
+    .virtual-table-head-cell {
+      padding: 0.65rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+    }
+    .virtual-table-head-cell:hover { color: var(--text-secondary); }
+    .virtual-table-head-cell.sorted { color: var(--accent-1); }
+
+    .virtual-scroll-outer {
+      overflow-y: auto;
+      max-height: 520px;
+      background: var(--bg-surface);
+    }
+    .virtual-scroll-inner { position: relative; }
+    .virtual-row {
+      position: absolute;
+      left: 0; right: 0;
+      display: grid;
+      border-bottom: 1px solid var(--border);
+    }
+    .virtual-row:hover { background: var(--bg-elevated); }
+    .virtual-cell {
+      padding: 0.6rem 1rem;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+    }
+    .virtual-cell.primary { color: var(--text-primary); font-weight: 500; }
+
+    /* ── Station cards ──────────────────────────────────────────────────────── */
+    .stations-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 0.75rem;
+    }
+    .station-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1rem 1.1rem;
+      transition: border-color var(--transition), background var(--transition);
+    }
+    .station-card:hover { border-color: var(--accent-1); background: var(--bg-elevated); }
+    .station-name {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+      word-break: break-word;
+    }
+    .station-stats {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .stat-up { color: var(--success); font-weight: 500; }
+    .stat-down { color: var(--danger); font-weight: 500; }
+
+    /* ── Summary cards ──────────────────────────────────────────────────────── */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+      gap: 0.85rem;
+      margin-bottom: 1.75rem;
+    }
+    .summary-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.1rem 1.25rem;
+    }
+    .summary-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+    }
+    .summary-value {
+      font-size: 1.75rem;
+      font-weight: 800;
+      background: var(--accent-grad);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1.2;
+    }
+    .summary-sub {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 0.2rem;
+    }
+    .summary-detail {
+      margin-top: 1.25rem;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.1rem 1.25rem;
+    }
+    .summary-detail-title {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 0.75rem;
+    }
+    .summary-detail dl {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      gap: 0.35rem 1.5rem;
+    }
+    .summary-detail dt {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+    .summary-detail dd {
+      font-size: 0.82rem;
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    /* ── Empty state ────────────────────────────────────────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1.5rem;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      background: var(--bg-surface);
+    }
+    .empty-state p { margin-top: 0.5rem; }
+
+    /* ── Results count ──────────────────────────────────────────────────────── */
+    .results-count {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+    }
+
+    /* ── Responsive ─────────────────────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .hero { padding: 3rem 0 2rem; }
+      .hero-actions { flex-direction: column; align-items: stretch; }
+      .hero-actions .btn { text-align: center; justify-content: center; }
+      .security-grid { grid-template-columns: 1fr; }
+      .summary-grid { grid-template-columns: repeat(2, 1fr); }
+      .site-footer .container { flex-direction: column; align-items: flex-start; }
+      .viewer-header .container { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     LANDING PAGE
+════════════════════════════════════════════════════════════════════════ -->
+<div id="page-landing" class="page active">
+  <a href="#landing-drop-zone" class="skip-link">Skip to export zone</a>
+
+  <header class="site-header" role="banner">
+    <div class="container">
+      <span class="site-logo" aria-label="Pandora Data Exporter">Pandora Data Exporter</span>
+      <nav class="header-actions" aria-label="Site navigation">
+        <a href="https://github.com/K3M6/pandora-exporter" class="btn btn-ghost btn-sm" id="landing-github-link" aria-label="GitHub repository">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- ── Hero ─────────────────────────────────────────────────────────── -->
+    <section class="hero" aria-labelledby="hero-heading">
+      <div class="container">
+        <div class="hero-badge" aria-hidden="true">Browser-only — no server</div>
+        <h1 class="hero-title" id="hero-heading">Pandora Data Exporter</h1>
+        <p class="hero-desc">
+          Export your Pandora stations, thumbs up / thumbs down, and saved music library —
+          everything runs in your browser and your credentials never leave pandora.com.
+        </p>
+        <div class="hero-actions">
+          <button class="btn btn-primary" id="hero-view-export-btn" type="button">
+            View Your Export
+          </button>
+          <a href="#how-to-use" class="btn btn-secondary">How to Use</a>
+        </div>
+      </div>
+    </section>
+
+    <div class="container">
+
+      <!-- ── Export drop zone ──────────────────────────────────────────── -->
+      <section aria-labelledby="dropzone-heading">
+        <h2 id="dropzone-heading" class="sr-only">Load your export file</h2>
+        <div class="export-zone"
+             id="landing-drop-zone"
+             role="button"
+             tabindex="0"
+             aria-label="Drop your pandora export JSON file here, or click to choose a file">
+          <input type="file"
+                 id="landing-file-input"
+                 accept=".json,application/json"
+                 aria-label="Choose export JSON file"
+                 tabindex="-1" />
+          <svg class="export-zone-icon" viewBox="0 0 48 48" fill="none" aria-hidden="true" focusable="false">
+            <rect width="48" height="48" rx="10" fill="currentColor" opacity="0.08"/>
+            <path d="M16 28L24 20L32 28" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M24 20V34" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M14 36H34" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <div class="export-zone-title">Drop your export JSON here</div>
+          <div class="export-zone-hint">or click to choose a file — <code>pandora_export_*.json</code></div>
+        </div>
+        <p class="privacy-notice" role="note">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false">
+            <path d="M10 2L3 5V10C3 14.4 6.1 18.5 10 20C13.9 18.5 17 14.4 17 10V5L10 2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+          </svg>
+          Your data stays in your browser. Nothing is uploaded.
+        </p>
+      </section>
+
+      <!-- ── How to use ─────────────────────────────────────────────────── -->
+      <section class="section" id="how-to-use" aria-labelledby="how-to-use-heading">
+        <h2 class="section-title" id="how-to-use-heading">How to Use</h2>
+        <ol class="steps" aria-label="Export steps">
+          <li class="step">
+            <span class="step-num" aria-label="Step 1">1</span>
+            <div class="step-body">
+              Go to <a href="https://www.pandora.com" target="_blank" rel="noopener noreferrer">pandora.com</a>
+            </div>
+          </li>
+          <li class="step">
+            <span class="step-num" aria-label="Step 2">2</span>
+            <div class="step-body">
+              Open DevTools:
+              <code>F12</code> on Windows/Linux or
+              <code>Cmd+Option+I</code> on Mac
+            </div>
+          </li>
+          <li class="step">
+            <span class="step-num" aria-label="Step 3">3</span>
+            <div class="step-body">
+              Click the <strong>Console</strong> tab
+            </div>
+          </li>
+          <li class="step">
+            <span class="step-num" aria-label="Step 4">4</span>
+            <div class="step-body">
+              Copy the entire contents of <code>pandora-exporter.js</code> below and
+              paste it into the console
+            </div>
+          </li>
+          <li class="step">
+            <span class="step-num" aria-label="Step 5">5</span>
+            <div class="step-body">Press <strong>Enter</strong></div>
+          </li>
+          <li class="step">
+            <span class="step-num" aria-label="Step 6">6</span>
+            <div class="step-body">Enter your email and password when prompted</div>
+          </li>
+          <li class="step">
+            <span class="step-num" aria-label="Step 7">7</span>
+            <div class="step-body">
+              Wait — files download automatically when done. To stop mid-run,
+              type <code>window.__pandoraExportAbort()</code> in the console.
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <!-- ── Exporter script ───────────────────────────────────────────── -->
+      <section class="section" id="script-section" aria-labelledby="script-heading">
+        <h2 class="section-title" id="script-heading">Exporter Script</h2>
+        <div class="code-block-wrapper" role="region" aria-label="Exporter script code">
+          <div class="code-header">
+            <span class="code-lang">javascript</span>
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+              <span class="copy-feedback" id="copy-feedback" aria-live="polite" aria-atomic="true">Copied!</span>
+              <button class="btn btn-secondary btn-sm" id="copy-btn" type="button" aria-label="Copy script to clipboard">
+                Copy to Clipboard
+              </button>
+            </div>
+          </div>
+          <div class="code-scroll" id="code-scroll-area">
+            <pre class="code-loading" id="script-pre">Loading script...</pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── How the script works ──────────────────────────────────────── -->
+      <section class="section" id="how-it-works" aria-labelledby="how-it-works-heading">
+        <h2 class="section-title" id="how-it-works-heading">How the Script Works</h2>
+        <div class="how-it-works-list">
+          <div class="how-it-works-item">
+            <div class="how-it-works-icon">
+              <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+            </div>
+            <div>
+              <div class="how-it-works-label">Domain check</div>
+              <div class="how-it-works-desc">Verifies the script is running on pandora.com. Exits immediately with an error if not.</div>
+            </div>
+          </div>
+          <div class="how-it-works-item">
+            <div class="how-it-works-icon">
+              <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            </div>
+            <div>
+              <div class="how-it-works-label">Login</div>
+              <div class="how-it-works-desc">Prompts for your email and password, then authenticates with Pandora's API over HTTPS. Your password is cleared from memory immediately after login.</div>
+            </div>
+          </div>
+          <div class="how-it-works-item">
+            <div class="how-it-works-icon">
+              <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            </div>
+            <div>
+              <div class="how-it-works-label">Fetch stations</div>
+              <div class="how-it-works-desc">Retrieves all your stations with full pagination (handles accounts with 250+ stations).</div>
+            </div>
+          </div>
+          <div class="how-it-works-item">
+            <div class="how-it-works-icon">
+              <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 00-6 0v4"/><path d="M5 9h14l1 12H4L5 9z"/></svg>
+            </div>
+            <div>
+              <div class="how-it-works-label">Fetch thumbs</div>
+              <div class="how-it-works-desc">For each station, fetches all thumbs up and thumbs down with pagination. Shows progress as <code>[12/47]</code> in the console. Rate-limit aware with automatic retry.</div>
+            </div>
+          </div>
+          <div class="how-it-works-item">
+            <div class="how-it-works-icon">
+              <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+            </div>
+            <div>
+              <div class="how-it-works-label">Fetch collection</div>
+              <div class="how-it-works-desc">Retrieves your saved songs, albums, artists, and playlists with pagination.</div>
+            </div>
+          </div>
+          <div class="how-it-works-item">
+            <div class="how-it-works-icon">
+              <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </div>
+            <div>
+              <div class="how-it-works-label">Download files</div>
+              <div class="how-it-works-desc">Downloads three files: the full raw JSON export, a sanitized version (safe to share, with internal IDs stripped), and a CSV of liked tracks for importing into Spotify or YouTube Music.</div>
+            </div>
+          </div>
+          <div class="how-it-works-item">
+            <div class="how-it-works-icon">
+              <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            </div>
+            <div>
+              <div class="how-it-works-label">Logout</div>
+              <div class="how-it-works-desc">Automatically logs out of the Pandora session when the export completes (or if it fails or is aborted).</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Security ──────────────────────────────────────────────────── -->
+      <section class="section" id="security" aria-labelledby="security-heading">
+        <h2 class="section-title" id="security-heading">Security</h2>
+        <div class="security-grid">
+          <div class="security-item">
+            <div class="security-item-title">Runs on pandora.com only</div>
+            <div class="security-item-body">
+              The script checks it is running on pandora.com before doing anything.
+              All network requests go to <code style="font-family:var(--font-mono);font-size:0.82em;">https://www.pandora.com/api</code> and nowhere else.
+              Search the script for <code style="font-family:var(--font-mono);font-size:0.82em;">fetch(</code> to verify.
+            </div>
+          </div>
+          <div class="security-item">
+            <div class="security-item-title">Credentials are not stored</div>
+            <div class="security-item-body">
+              Your password is used once to log in over HTTPS, then immediately cleared from
+              memory. The session is logged out automatically when the export finishes.
+            </div>
+          </div>
+          <div class="security-item">
+            <div class="security-item-title">Verify before running</div>
+            <div class="security-item-body">
+              The script is ~400 lines and fully readable. Never run a minified version.
+              Check that the <code style="font-family:var(--font-mono);font-size:0.82em;">BASE</code> constant points to
+              <code style="font-family:var(--font-mono);font-size:0.82em;">https://www.pandora.com/api</code>.
+            </div>
+          </div>
+          <div class="security-item">
+            <div class="security-item-title">Sanitized export for sharing</div>
+            <div class="security-item-body">
+              The raw JSON may contain internal account IDs. A second file,
+              <code style="font-family:var(--font-mono);font-size:0.82em;">*_sanitized.json</code>, strips all identifying fields
+              and is safe to share publicly.
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /container -->
+  </main>
+
+  <footer class="site-footer" role="contentinfo">
+    <div class="container">
+      <p class="footer-text">
+        Not affiliated with or endorsed by Pandora or SiriusXM. Use at your own risk.
+        MIT License.
+      </p>
+      <a href="https://github.com/K3M6/pandora-exporter" class="footer-text" id="footer-github-link" aria-label="GitHub repository">View on GitHub</a>
+    </div>
+  </footer>
+
+</div><!-- /page-landing -->
+
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     EXPORT VIEWER PAGE
+════════════════════════════════════════════════════════════════════════ -->
+<div id="page-viewer" class="page" aria-label="Export viewer">
+  <a href="#main-tabs-nav" class="skip-link">Skip to export data</a>
+
+  <header class="site-header viewer-header" role="banner">
+    <div class="container">
+      <button class="btn btn-ghost btn-sm" id="back-btn" type="button" aria-label="Back to landing page">
+        &#8592; Back
+      </button>
+      <div class="viewer-title" id="viewer-filename-display" aria-live="polite">
+        Export Viewer
+      </div>
+      <div class="privacy-banner" role="note" aria-label="Privacy notice">
+        <svg width="13" height="13" viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false">
+          <path d="M10 2L3 5V10C3 14.4 6.1 18.5 10 20C13.9 18.5 17 14.4 17 10V5L10 2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+        </svg>
+        Your data stays in your browser. Nothing is uploaded.
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+
+      <!-- ── Tab navigation ────────────────────────────────────────────── -->
+      <nav class="tabs-nav" role="tablist" aria-label="Export sections" id="main-tabs-nav">
+        <button class="tab-btn active" role="tab" aria-selected="true"  aria-controls="tab-summary"   id="tabBtn-summary"   type="button">
+          Summary
+        </button>
+        <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="tab-stations"  id="tabBtn-stations"  type="button">
+          Stations <span class="tab-count" id="count-stations" aria-live="polite" aria-atomic="true">0</span>
+        </button>
+        <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="tab-liked"     id="tabBtn-liked"     type="button">
+          Liked Tracks <span class="tab-count" id="count-liked" aria-live="polite" aria-atomic="true">0</span>
+        </button>
+        <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="tab-disliked"  id="tabBtn-disliked"  type="button">
+          Disliked Tracks <span class="tab-count" id="count-disliked" aria-live="polite" aria-atomic="true">0</span>
+        </button>
+        <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="tab-collection" id="tabBtn-collection" type="button">
+          Collection
+        </button>
+      </nav>
+
+      <!-- ── Summary ───────────────────────────────────────────────────── -->
+      <section class="tab-panel active" id="tab-summary" role="tabpanel" aria-labelledby="tabBtn-summary" tabindex="0">
+        <div class="summary-grid" id="summary-grid" aria-label="Export statistics"></div>
+        <div class="summary-detail" id="summary-detail" aria-label="Export details"></div>
+      </section>
+
+      <!-- ── Stations ──────────────────────────────────────────────────── -->
+      <section class="tab-panel" id="tab-stations" role="tabpanel" aria-labelledby="tabBtn-stations" tabindex="0">
+        <div class="search-bar" role="search">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false">
+            <circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M16 16L13.5 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <input type="search" id="search-stations" placeholder="Search stations..." aria-label="Search stations" />
+        </div>
+        <p class="results-count" id="stations-count" aria-live="polite" aria-atomic="true"></p>
+        <div class="stations-grid" id="stations-grid" role="list" aria-label="Stations"></div>
+      </section>
+
+      <!-- ── Liked Tracks ───────────────────────────────────────────────── -->
+      <section class="tab-panel" id="tab-liked" role="tabpanel" aria-labelledby="tabBtn-liked" tabindex="0">
+        <div class="search-bar" role="search">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false">
+            <circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M16 16L13.5 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <input type="search" id="search-liked" placeholder="Search track, artist, album, station..." aria-label="Search liked tracks" />
+        </div>
+        <p class="results-count" id="liked-count" aria-live="polite" aria-atomic="true"></p>
+        <div id="liked-table-container"></div>
+      </section>
+
+      <!-- ── Disliked Tracks ────────────────────────────────────────────── -->
+      <section class="tab-panel" id="tab-disliked" role="tabpanel" aria-labelledby="tabBtn-disliked" tabindex="0">
+        <div class="search-bar" role="search">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false">
+            <circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M16 16L13.5 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <input type="search" id="search-disliked" placeholder="Search track, artist, album, station..." aria-label="Search disliked tracks" />
+        </div>
+        <p class="results-count" id="disliked-count" aria-live="polite" aria-atomic="true"></p>
+        <div id="disliked-table-container"></div>
+      </section>
+
+      <!-- ── Collection ────────────────────────────────────────────────── -->
+      <section class="tab-panel" id="tab-collection" role="tabpanel" aria-labelledby="tabBtn-collection" tabindex="0">
+        <nav class="subtabs-nav" role="tablist" aria-label="Collection types" id="subtabs-nav">
+          <button class="subtab-btn active" role="tab" aria-selected="true"  aria-controls="subtab-songs"     id="stBtn-songs"     type="button">Songs <span class="tab-count" id="count-col-songs" aria-live="polite" aria-atomic="true">0</span></button>
+          <button class="subtab-btn"        role="tab" aria-selected="false" aria-controls="subtab-albums"    id="stBtn-albums"    type="button">Albums <span class="tab-count" id="count-col-albums" aria-live="polite" aria-atomic="true">0</span></button>
+          <button class="subtab-btn"        role="tab" aria-selected="false" aria-controls="subtab-artists"   id="stBtn-artists"   type="button">Artists <span class="tab-count" id="count-col-artists" aria-live="polite" aria-atomic="true">0</span></button>
+          <button class="subtab-btn"        role="tab" aria-selected="false" aria-controls="subtab-playlists" id="stBtn-playlists" type="button">Playlists <span class="tab-count" id="count-col-playlists" aria-live="polite" aria-atomic="true">0</span></button>
+        </nav>
+
+        <div class="search-bar" role="search">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false">
+            <circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M16 16L13.5 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <input type="search" id="search-collection" placeholder="Search collection..." aria-label="Search collection" />
+        </div>
+        <p class="results-count" id="collection-count" aria-live="polite" aria-atomic="true"></p>
+
+        <div id="subtab-songs"     class="subtab-panel active" role="tabpanel" aria-labelledby="stBtn-songs"></div>
+        <div id="subtab-albums"    class="subtab-panel"        role="tabpanel" aria-labelledby="stBtn-albums"></div>
+        <div id="subtab-artists"   class="subtab-panel"        role="tabpanel" aria-labelledby="stBtn-artists"></div>
+        <div id="subtab-playlists" class="subtab-panel"        role="tabpanel" aria-labelledby="stBtn-playlists"></div>
+      </section>
+
+    </div>
+  </main>
+
+</div><!-- /page-viewer -->
+
+
+<script>
+"use strict";
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UTILITIES — debounce
+═══════════════════════════════════════════════════════════════════════════ */
+function debounce(fn, ms) {
+  let timer;
+  return function(...args) { clearTimeout(timer); timer = setTimeout(() => fn.apply(this, args), ms); };
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════════════════════════ */
+const state = {
+  exportData: null,
+  scriptText: null,
+  activeCollectionSubtab: "songs",
+  viewerAbort: null,
+  sort: {
+    liked:     { col: 0, dir: 1 },
+    disliked:  { col: 0, dir: 1 },
+    songs:     { col: 0, dir: 1 },
+    albums:    { col: 0, dir: 1 },
+    artists:   { col: 0, dir: 1 },
+    playlists: { col: 0, dir: 1 },
+  },
+};
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PAGE NAVIGATION
+═══════════════════════════════════════════════════════════════════════════ */
+function showPage(id) {
+  document.querySelectorAll(".page").forEach(p => {
+    p.classList.remove("active");
+    p.setAttribute("inert", "");
+  });
+  const target = document.getElementById(id);
+  if (target) {
+    target.classList.add("active");
+    target.removeAttribute("inert");
+    target.setAttribute("tabindex", "-1");
+    target.focus();
+    target.removeAttribute("tabindex");
+  }
+}
+
+document.getElementById("hero-view-export-btn").addEventListener("click", () => {
+  document.getElementById("landing-file-input").click();
+});
+document.getElementById("back-btn").addEventListener("click", () => {
+  showPage("page-landing");
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SCRIPT LOADER
+═══════════════════════════════════════════════════════════════════════════ */
+(async () => {
+  const pre = document.getElementById("script-pre");
+  pre.className = "code-loading";
+  try {
+    const resp = await fetch("pandora-exporter.js");
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const text = await resp.text();
+    state.scriptText = text;
+    pre.textContent = text;
+    pre.className = "";
+  } catch (err) {
+    pre.className = "code-error";
+    pre.textContent =
+      "Could not load pandora-exporter.js from the same directory.\n\n" +
+      "To use this page locally, serve it with a local web server:\n" +
+      "  npx serve .\n" +
+      "  python3 -m http.server\n\n" +
+      "Error: " + err.message;
+  }
+})();
+
+document.getElementById("copy-btn").addEventListener("click", () => {
+  const text = state.scriptText;
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => {
+    const fb = document.getElementById("copy-feedback");
+    fb.classList.add("show");
+    setTimeout(() => fb.classList.remove("show"), 2000);
+  }).catch(() => {
+    /* Fallback for older browsers */
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    const fb = document.getElementById("copy-feedback");
+    fb.classList.add("show");
+    setTimeout(() => fb.classList.remove("show"), 2000);
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FILE LOADING — drag-drop + file picker
+═══════════════════════════════════════════════════════════════════════════ */
+function setupDropZone(zoneEl, inputEl) {
+  zoneEl.addEventListener("dragover", e => {
+    e.preventDefault();
+    zoneEl.classList.add("drag-over");
+  });
+  zoneEl.addEventListener("dragleave", () => {
+    zoneEl.classList.remove("drag-over");
+  });
+  zoneEl.addEventListener("drop", e => {
+    e.preventDefault();
+    zoneEl.classList.remove("drag-over");
+    const file = e.dataTransfer?.files?.[0];
+    if (file) loadFile(file);
+  });
+  zoneEl.addEventListener("keydown", e => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      inputEl.click();
+    }
+  });
+  inputEl.addEventListener("change", () => {
+    const file = inputEl.files?.[0];
+    if (file) loadFile(file);
+  });
+}
+
+setupDropZone(
+  document.getElementById("landing-drop-zone"),
+  document.getElementById("landing-file-input")
+);
+
+function loadFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data || typeof data !== "object" || Array.isArray(data)) {
+        alert("This doesn't look like a Pandora export file. Expected a JSON object.");
+        return;
+      }
+      state.exportData = data;
+      initViewer(data, file.name);
+      showPage("page-viewer");
+    } catch {
+      alert("Could not parse that file as JSON. Make sure you are loading a pandora_export_*.json file.");
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VIEWER INIT
+═══════════════════════════════════════════════════════════════════════════ */
+function initViewer(data, filename) {
+  if (state.viewerAbort) state.viewerAbort.abort();
+  state.viewerAbort = new AbortController();
+  const viewerSignal = state.viewerAbort.signal;
+
+  /* Update header */
+  const displayEl = document.getElementById("viewer-filename-display");
+  displayEl.innerHTML = `<span>${escHtml(filename)}</span>`;
+
+  /* Derived data */
+  const stations   = Array.isArray(data.stations)   ? data.stations   : [];
+  const thumbsUp   = Array.isArray(data.thumbsUp)   ? data.thumbsUp   : [];
+  const thumbsDown = Array.isArray(data.thumbsDown) ? data.thumbsDown : [];
+  const col        = data.collection ?? {};
+  const songs      = Array.isArray(col.songs)     ? col.songs     : [];
+  const albums     = Array.isArray(col.albums)    ? col.albums    : [];
+  const artists    = Array.isArray(col.artists)   ? col.artists   : [];
+  const playlists  = Array.isArray(col.playlists) ? col.playlists : [];
+
+  /* Update counts in tabs */
+  setText("count-stations",      stations.length);
+  setText("count-liked",         thumbsUp.length);
+  setText("count-disliked",      thumbsDown.length);
+  setText("count-col-songs",     songs.length);
+  setText("count-col-albums",    albums.length);
+  setText("count-col-artists",   artists.length);
+  setText("count-col-playlists", playlists.length);
+
+  buildSummary(data, stations, thumbsUp, thumbsDown, col);
+  buildStations(stations, thumbsUp, thumbsDown);
+  buildTracksTable("liked",    thumbsUp,   "liked-table-container",   "liked-count",    "search-liked");
+  buildTracksTable("disliked", thumbsDown, "disliked-table-container","disliked-count", "search-disliked");
+  buildCollectionSubtabs(songs, albums, artists, playlists, viewerSignal);
+
+  /* Reset to summary tab */
+  activateTab("tabBtn-summary", "tab-summary");
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SUMMARY TAB
+═══════════════════════════════════════════════════════════════════════════ */
+function buildSummary(data, stations, thumbsUp, thumbsDown, col) {
+  const grid = document.getElementById("summary-grid");
+  const detail = document.getElementById("summary-detail");
+
+  const cards = [
+    { label: "Stations",      value: stations.length,            sub: "radio stations" },
+    { label: "Thumbs Up",     value: thumbsUp.length,            sub: "liked tracks"   },
+    { label: "Thumbs Down",   value: thumbsDown.length,          sub: "disliked tracks" },
+    { label: "Saved Songs",   value: col.songs?.length ?? 0,     sub: "in collection"  },
+    { label: "Saved Albums",  value: col.albums?.length ?? 0,    sub: "in collection"  },
+    { label: "Artists",       value: col.artists?.length ?? 0,   sub: "followed"       },
+    { label: "Playlists",     value: col.playlists?.length ?? 0, sub: "saved"          },
+  ];
+
+  grid.innerHTML = cards.map(c => `
+    <div class="summary-card" role="group" aria-label="${escHtml(c.label)}: ${c.value}">
+      <div class="summary-label">${escHtml(c.label)}</div>
+      <div class="summary-value">${c.value.toLocaleString()}</div>
+      <div class="summary-sub">${escHtml(c.sub)}</div>
+    </div>
+  `).join("");
+
+  const exportedAt = data.exportedAt ? new Date(data.exportedAt).toLocaleString() : "Unknown";
+  const uniqueUp   = dedupeTrackSet(data.thumbsUp ?? []).size;
+  const uniqueDown = dedupeTrackSet(data.thumbsDown ?? []).size;
+
+  detail.innerHTML = `
+    <div class="summary-detail-title">Export Details</div>
+    <dl>
+      <dt>Exported at</dt>   <dd>${escHtml(exportedAt)}</dd>
+      <dt>Unique liked tracks</dt> <dd>${uniqueUp.toLocaleString()}</dd>
+      <dt>Unique disliked tracks</dt> <dd>${uniqueDown.toLocaleString()}</dd>
+      <dt>Total collection items</dt>
+      <dd>${((col.songs?.length??0)+(col.albums?.length??0)+(col.artists?.length??0)+(col.playlists?.length??0)).toLocaleString()}</dd>
+    </dl>
+  `;
+}
+
+function dedupeTrackSet(tracks) {
+  const seen = new Set();
+  for (const t of tracks) {
+    const key = [
+      t.songName ?? t.songTitle ?? t.trackName ?? "",
+      t.artistName ?? t.artist ?? "",
+    ].join("|");
+    seen.add(key);
+  }
+  return seen;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   STATIONS TAB
+═══════════════════════════════════════════════════════════════════════════ */
+function buildStations(stations, thumbsUp, thumbsDown) {
+  /* Build per-station counts */
+  const upCounts   = {};
+  const downCounts = {};
+  for (const t of thumbsUp) {
+    const n = t._stationName ?? "";
+    upCounts[n] = (upCounts[n] ?? 0) + 1;
+  }
+  for (const t of thumbsDown) {
+    const n = t._stationName ?? "";
+    downCounts[n] = (downCounts[n] ?? 0) + 1;
+  }
+
+  const enriched = stations.map(s => ({
+    name: s.name ?? s.stationName ?? "(Unnamed)",
+    up:   upCounts[s.name ?? s.stationName ?? ""] ?? 0,
+    down: downCounts[s.name ?? s.stationName ?? ""] ?? 0,
+  })).sort((a, b) => a.name.localeCompare(b.name));
+
+  function render(query) {
+    const q = query.trim().toLowerCase();
+    const filtered = q
+      ? enriched.filter(s => s.name.toLowerCase().includes(q))
+      : enriched;
+
+    const grid = document.getElementById("stations-grid");
+    const countEl = document.getElementById("stations-count");
+    countEl.textContent = `${filtered.length.toLocaleString()} station${filtered.length !== 1 ? "s" : ""}`;
+
+    if (filtered.length === 0) {
+      grid.innerHTML = renderEmpty("No stations match your search.");
+      return;
+    }
+    grid.innerHTML = filtered.map(s => `
+      <div class="station-card" role="listitem">
+        <div class="station-name">${escHtml(s.name)}</div>
+        <div class="station-stats">
+          <span class="stat-up" aria-label="${s.up} thumbs up">+ ${s.up.toLocaleString()} up</span>
+          <span class="stat-down" aria-label="${s.down} thumbs down">- ${s.down.toLocaleString()} down</span>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  render("");
+  document.getElementById("search-stations").addEventListener("input", debounce(e => render(e.target.value), 150));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VIRTUAL TABLE — shared engine used by all data tabs
+   cols: Array<{ label: string, width: string }>
+   rows: Array<string[]>                 (pre-mapped)
+   container: HTMLElement                (target mount point)
+   onRebuild: () => void                 (called after each render, optional)
+   ariaLabel: string
+═══════════════════════════════════════════════════════════════════════════ */
+function makeVirtualTable({ cols, rows, container, ariaLabel, onRebuild }) {
+  const ROW_H   = 42;
+  const headGrid = `grid-template-columns: ${cols.map(c => c.width).join(" ")}`;
+
+  let filtered = rows.slice();
+  let sortCol  = 0;
+  let sortDir  = 1;
+
+  function sortedRows() {
+    return filtered.slice().sort((a, b) => {
+      const av = (a[sortCol] ?? "").toLowerCase();
+      const bv = (b[sortCol] ?? "").toLowerCase();
+      return av < bv ? -sortDir : av > bv ? sortDir : 0;
+    });
+  }
+
+  function mount() {
+    container.innerHTML = "";
+
+    if (filtered.length === 0) {
+      container.innerHTML = renderEmpty("No items match your search.");
+      onRebuild?.();
+      return;
+    }
+
+    const sorted  = sortedRows();
+    const wrapper = document.createElement("div");
+    wrapper.className = "virtual-table-container";
+    wrapper.setAttribute("role", "table");
+    wrapper.setAttribute("aria-label", ariaLabel);
+    wrapper.setAttribute("aria-rowcount", String(sorted.length));
+    wrapper.setAttribute("aria-colcount", String(cols.length));
+
+    /* Header row */
+    const head = document.createElement("div");
+    head.className = "virtual-table-head";
+    head.setAttribute("style", headGrid);
+    head.setAttribute("role", "row");
+
+    cols.forEach((col, i) => {
+      const cell = document.createElement("div");
+      cell.className = "virtual-table-head-cell" + (i === sortCol ? " sorted" : "");
+      cell.setAttribute("role", "columnheader");
+      cell.setAttribute("aria-sort", i === sortCol ? (sortDir === 1 ? "ascending" : "descending") : "none");
+      cell.setAttribute("tabindex", "0");
+      cell.textContent = col.label + (i === sortCol ? (sortDir === 1 ? " \u25b2" : " \u25bc") : "");
+      const reSort = () => {
+        sortCol === i ? (sortDir = -sortDir) : (sortCol = i, sortDir = 1);
+        mount();
+      };
+      cell.addEventListener("click", reSort);
+      cell.addEventListener("keydown", e => { if (e.key === "Enter") reSort(); });
+      head.appendChild(cell);
+    });
+
+    /* Scrollable body */
+    const outer = document.createElement("div");
+    outer.className = "virtual-scroll-outer";
+    outer.setAttribute("role", "rowgroup");
+
+    const inner = document.createElement("div");
+    inner.className = "virtual-scroll-inner";
+    inner.style.height = (sorted.length * ROW_H) + "px";
+
+    const rendered = new Map();
+
+    function paint() {
+      const top   = outer.scrollTop;
+      const viewH = outer.clientHeight || 520;
+      const start = Math.max(0, Math.floor(top / ROW_H) - 5);
+      const end   = Math.min(sorted.length, Math.ceil((top + viewH) / ROW_H) + 5);
+
+      for (const [idx, node] of rendered) {
+        if (idx < start || idx >= end) { inner.removeChild(node); rendered.delete(idx); }
+      }
+      for (let i = start; i < end; i++) {
+        if (rendered.has(i)) continue;
+        const rowData = sorted[i];
+        const rowEl   = document.createElement("div");
+        rowEl.className = "virtual-row";
+        rowEl.setAttribute("role", "row");
+        rowEl.setAttribute("style", `top:${i * ROW_H}px;${headGrid}`);
+        rowData.forEach((val, ci) => {
+          const c = document.createElement("div");
+          c.className = "virtual-cell" + (ci === 0 ? " primary" : "");
+          c.setAttribute("role", "cell");
+          c.setAttribute("title", val);
+          c.textContent = val;
+          rowEl.appendChild(c);
+        });
+        inner.appendChild(rowEl);
+        rendered.set(i, rowEl);
+      }
+    }
+
+    outer.addEventListener("scroll", paint, { passive: true });
+    outer.appendChild(inner);
+    wrapper.appendChild(head);
+    wrapper.appendChild(outer);
+    container.appendChild(wrapper);
+    onRebuild?.();
+    requestAnimationFrame(paint);
+  }
+
+  function search(query) {
+    const q = query.trim().toLowerCase();
+    filtered = q ? rows.filter(r => r.some(v => v.toLowerCase().includes(q))) : rows.slice();
+    mount();
+  }
+
+  mount();
+  return { search, rowCount: () => filtered.length };
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TRACKS TABLES (liked / disliked)
+═══════════════════════════════════════════════════════════════════════════ */
+const TRACK_COLS = [
+  { label: "Track",   width: "30%" },
+  { label: "Artist",  width: "25%" },
+  { label: "Album",   width: "25%" },
+  { label: "Station", width: "20%" },
+];
+
+function normaliseTrack(t) {
+  return [
+    t.songName ?? t.songTitle ?? t.trackName ?? "",
+    t.artistName ?? t.artist ?? "",
+    t.albumName ?? t.albumTitle ?? t.album ?? "",
+    t._stationName ?? "",
+  ];
+}
+
+function buildTracksTable(key, tracks, containerId, countId, searchId) {
+  const rows      = tracks.map(normaliseTrack);
+  const container = document.getElementById(containerId);
+  const countEl   = document.getElementById(countId);
+  const searchEl  = document.getElementById(searchId);
+
+  const label  = key === "liked" ? "Liked tracks" : "Disliked tracks";
+  const noun   = "track";
+  const vt     = makeVirtualTable({
+    cols: TRACK_COLS, rows, container, ariaLabel: label,
+    onRebuild: () => {
+      const n = vt.rowCount();
+      countEl.textContent = n > 0
+        ? `${n.toLocaleString()} ${noun}${n !== 1 ? "s" : ""}`
+        : `0 ${noun}s`;
+    },
+  });
+
+  searchEl.addEventListener("input", debounce(e => vt.search(e.target.value), 150));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COLLECTION SUB-TABS
+═══════════════════════════════════════════════════════════════════════════ */
+function buildCollectionSubtabs(songs, albums, artists, playlists, signal) {
+  buildCollectionTable("songs",     songs,     ["Track", "Artist", "Album"],
+    ["30%", "35%", "35%"],
+    t => [
+      t.songName ?? t.songTitle ?? t.trackName ?? t.name ?? "",
+      t.artistName ?? t.artist ?? "",
+      t.albumName  ?? t.albumTitle ?? t.album ?? "",
+    ],
+    signal
+  );
+  buildCollectionTable("albums",    albums,    ["Album", "Artist"],
+    ["50%", "50%"],
+    t => [
+      t.albumName ?? t.albumTitle ?? t.name ?? "",
+      t.artistName ?? t.artist ?? "",
+    ],
+    signal
+  );
+  buildCollectionTable("artists",   artists,   ["Artist"],
+    ["100%"],
+    t => [t.artistName ?? t.artist ?? t.name ?? ""],
+    signal
+  );
+  buildCollectionTable("playlists", playlists, ["Name", "Description"],
+    ["40%", "60%"],
+    t => [
+      t.name ?? t.playlistName ?? "",
+      t.description ?? "",
+    ],
+    signal
+  );
+
+  document.getElementById("search-collection").addEventListener("input", debounce(e => {
+    const active = state.activeCollectionSubtab;
+    document.dispatchEvent(new CustomEvent("collection-search", { detail: { key: active, q: e.target.value } }));
+  }, 150));
+}
+
+function buildCollectionTable(key, items, colLabels, colWidths, rowMapper, signal) {
+  const container = document.getElementById(`subtab-${key}`);
+  const rows      = items.map(rowMapper);
+  const cols      = colLabels.map((label, i) => ({ label, width: colWidths[i] }));
+
+  const vt = makeVirtualTable({
+    cols, rows, container, ariaLabel: key,
+    onRebuild: updateCollectionCount,
+  });
+
+  document.addEventListener("collection-search", e => {
+    if (e.detail.key !== key) return;
+    vt.search(e.detail.q);
+  }, { signal });
+}
+
+function updateCollectionCount() {
+  const active = state.activeCollectionSubtab;
+  const container = document.getElementById(`subtab-${active}`);
+  if (!container) return;
+  const tableEl = container.querySelector(".virtual-table-container");
+  if (!tableEl) {
+    document.getElementById("collection-count").textContent = "";
+    return;
+  }
+  /* Count visible rows from inner height */
+  const inner = tableEl.querySelector(".virtual-scroll-inner");
+  const ROW_H = 42;
+  const count = inner ? Math.round(parseInt(inner.style.height) / ROW_H) : 0;
+  document.getElementById("collection-count").textContent =
+    `${count.toLocaleString()} item${count !== 1 ? "s" : ""}`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TAB SWITCHING
+═══════════════════════════════════════════════════════════════════════════ */
+function activateTab(btnId, panelId) {
+  const nav = document.getElementById("main-tabs-nav");
+  nav.querySelectorAll(".tab-btn").forEach(btn => {
+    const active = btn.id === btnId;
+    btn.classList.toggle("active", active);
+    btn.setAttribute("aria-selected", String(active));
+  });
+  document.querySelectorAll("#page-viewer .tab-panel").forEach(p => {
+    p.classList.toggle("active", p.id === panelId);
+  });
+}
+
+document.getElementById("main-tabs-nav").addEventListener("click", e => {
+  const btn = e.target.closest(".tab-btn");
+  if (!btn) return;
+  const panelId = btn.getAttribute("aria-controls");
+  activateTab(btn.id, panelId);
+  if (panelId === "tab-collection") updateCollectionCount();
+});
+
+document.getElementById("main-tabs-nav").addEventListener("keydown", e => {
+  const btn = e.target.closest(".tab-btn");
+  if (!btn) return;
+  const tabs = [...document.getElementById("main-tabs-nav").querySelectorAll(".tab-btn")];
+  const idx = tabs.indexOf(btn);
+  if (e.key === "ArrowRight" && idx < tabs.length - 1) { tabs[idx + 1].focus(); tabs[idx + 1].click(); }
+  if (e.key === "ArrowLeft"  && idx > 0)               { tabs[idx - 1].focus(); tabs[idx - 1].click(); }
+  if (e.key === "Home") { tabs[0].focus(); tabs[0].click(); }
+  if (e.key === "End")  { tabs[tabs.length - 1].focus(); tabs[tabs.length - 1].click(); }
+});
+
+/* ── Sub-tab switching (Collection) ──────────────────────────────────────── */
+document.getElementById("subtabs-nav").addEventListener("click", e => {
+  const btn = e.target.closest(".subtab-btn");
+  if (!btn) return;
+  const panelId = btn.getAttribute("aria-controls");
+  document.getElementById("subtabs-nav").querySelectorAll(".subtab-btn").forEach(b => {
+    const active = b === btn;
+    b.classList.toggle("active", active);
+    b.setAttribute("aria-selected", String(active));
+  });
+  document.querySelectorAll(".subtab-panel").forEach(p => {
+    p.classList.toggle("active", p.id === panelId);
+  });
+  state.activeCollectionSubtab = panelId.replace("subtab-", "");
+  document.getElementById("search-collection").value = "";
+  document.dispatchEvent(new CustomEvent("collection-search", { detail: { key: state.activeCollectionSubtab, q: "" } }));
+  updateCollectionCount();
+});
+
+document.getElementById("subtabs-nav").addEventListener("keydown", e => {
+  const btn = e.target.closest(".subtab-btn");
+  if (!btn) return;
+  const tabs = [...document.getElementById("subtabs-nav").querySelectorAll(".subtab-btn")];
+  const idx = tabs.indexOf(btn);
+  if (e.key === "ArrowRight" && idx < tabs.length - 1) { tabs[idx + 1].focus(); tabs[idx + 1].click(); }
+  if (e.key === "ArrowLeft"  && idx > 0)               { tabs[idx - 1].focus(); tabs[idx - 1].click(); }
+  if (e.key === "Home") { tabs[0].focus(); tabs[0].click(); }
+  if (e.key === "End")  { tabs[tabs.length - 1].focus(); tabs[tabs.length - 1].click(); }
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UTILITIES
+═══════════════════════════════════════════════════════════════════════════ */
+function escHtml(str) {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function setText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = String(val);
+}
+
+function renderEmpty(msg) {
+  return `<div class="empty-state" role="status"><strong>No data</strong><p>${escHtml(msg)}</p></div>`;
+}
+</script>
+</body>
+</html>

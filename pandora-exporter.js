@@ -240,7 +240,53 @@
     return { thumbsUp, thumbsDown };
   }
 
-  // ── Fetch collection (saved songs, albums, artists, playlists) ───────────────
+  // ── Fetch collection via GraphQL ───────────────────────────────────────────
+  async function graphql(query, variables, authToken) {
+    checkAbort();
+    const res = await fetch(`${BASE}/v1/graphql/graphql`, {
+      method: "POST",
+      credentials: "include",
+      signal,
+      headers: {
+        "Content-Type": "application/json",
+        "X-CsrfToken":  getCsrf(),
+        "X-AuthToken":  authToken ?? "",
+      },
+      body: JSON.stringify({ query, variables }),
+    });
+    if (res.status === 429) {
+      console.warn("  Rate limited on GraphQL, waiting 25s...");
+      await sleep(25000);
+      return graphql(query, variables, authToken);
+    }
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`${res.status} on GraphQL: ${text.slice(0, 300)}`);
+    }
+    const json = await res.json();
+    if (json.errors) {
+      throw new Error(`GraphQL error: ${json.errors[0].message}`);
+    }
+    return json.data;
+  }
+
+  async function fetchCollectionType(typeCode, fields, authToken) {
+    const all = [];
+    const pageSize = 100;
+    let offset = 0;
+    while (true) {
+      checkAbort();
+      const query = `query Q($t: [CollectibleTypes!]!, $limit: Int, $offset: Int) { collection(types: $t, pagination: {limit: $limit, offset: $offset}) { totalCount items { ... on Track { id name type artist { id name } album { id name } } ... on Album { id name type artist { id name } } ... on Artist { id name type } ... on Playlist { id name type totalTracks } } } }`;
+      const data = await graphql(query, { t: [typeCode], limit: pageSize, offset }, authToken);
+      const page = data?.collection?.items ?? [];
+      for (const item of page) all.push(item);
+      if (page.length < pageSize) break;
+      offset += page.length;
+      await sleep(300);
+    }
+    return all;
+  }
+
   async function fetchCollection(authToken) {
     console.log("Fetching collection (pausing 10s for rate limit cooldown)...");
     await sleep(10000);
@@ -250,12 +296,7 @@
     for (const [label, type] of Object.entries(types)) {
       checkAbort();
       try {
-        result[label] = await fetchAllPages(
-          "/v1/collection/getSortedItems",
-          { type, sortOrder: "DATE_ADDED_DESC", pageSize: 100 },
-          "items",
-          authToken,
-        );
+        result[label] = await fetchCollectionType(type, null, authToken);
         console.log(`  ${label}: ${result[label].length}`);
       } catch (e) {
         if (signal.aborted) throw e;
