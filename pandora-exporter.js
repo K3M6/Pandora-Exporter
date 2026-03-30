@@ -272,7 +272,7 @@
 
   async function fetchCollectionType(typeCode, fields, authToken) {
     const all = [];
-    const pageSize = 100;
+    const pageSize = 50;
     let offset = 0;
     while (true) {
       checkAbort();
