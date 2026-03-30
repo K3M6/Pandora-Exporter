@@ -573,19 +573,9 @@
     /* ── Two-column script walkthrough layout ───────────────────────────────── */
     .script-walkthrough {
       display: grid;
-      grid-template-columns: 3fr 2fr;
-      gap: 1.5rem;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
       align-items: start;
-      max-width: 1200px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-    .container { overflow-x: hidden; }
-    #script-section {
-      margin-left: calc(-50vw + 50%);
-      margin-right: calc(-50vw + 50%);
-      padding-left: max(1.25rem, calc(50vw - 600px));
-      padding-right: max(1.25rem, calc(50vw - 600px));
     }
     .script-walkthrough .code-block-wrapper {
       position: sticky;
@@ -1171,97 +1161,95 @@
             <h2 class="section-title" id="how-it-works-heading">How the Script Works</h2>
             <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.85rem;">Click a step to highlight the relevant lines in the script.</p>
             <div class="how-it-works-list" id="how-it-works">
-              <div class="how-it-works-item"
-                   data-lines="43-50"
-                   role="button"
-                   tabindex="0"
+
+              <div class="how-it-works-item" data-lines="43-50" role="button" tabindex="0"
                    aria-label="Domain check — click to highlight in script">
-                <div class="how-it-works-icon">
-                  <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
-                </div>
                 <div>
-                  <div class="how-it-works-label">Domain check</div>
-                  <div class="how-it-works-desc">Verifies the script is running on pandora.com. Exits immediately with an error if not.</div>
+                  <div class="how-it-works-label">1. Domain check</div>
+                  <div class="how-it-works-desc">First thing: verify we're actually on pandora.com using a regex that rejects lookalike domains. If not, the script prints an error and exits immediately.</div>
                 </div>
               </div>
-              <div class="how-it-works-item"
-                   data-lines="118-132,309-317"
-                   role="button"
-                   tabindex="0"
+
+              <div class="how-it-works-item" data-lines="56-86" role="button" tabindex="0"
+                   aria-label="Setup — click to highlight in script">
+                <div>
+                  <div class="how-it-works-label">2. Setup: abort, CSRF, sleep</div>
+                  <div class="how-it-works-desc">Creates an AbortController so you can cancel mid-export by typing <code>window.__pandoraExportAbort()</code>. Generates a CSRF token using <code>crypto.getRandomValues()</code> for Pandora's double-submit cookie pattern. Defines a cancellable sleep function that cleans up its listener when the timer fires normally.</div>
+                </div>
+              </div>
+
+              <div class="how-it-works-item" data-lines="88-115" role="button" tabindex="0"
+                   aria-label="API wrapper — click to highlight in script">
+                <div>
+                  <div class="how-it-works-label">3. API wrapper with rate limiting</div>
+                  <div class="how-it-works-desc">Every API call goes through this function. It sends the CSRF and auth token headers, checks for abort before each request, and if Pandora returns 429 (rate limited), waits the requested time (capped at 60s) and retries up to 5 times.</div>
+                </div>
+              </div>
+
+              <div class="how-it-works-item" data-lines="118-132,305-317" role="button" tabindex="0"
                    aria-label="Login — click to highlight in script">
-                <div class="how-it-works-icon">
-                  <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-                </div>
                 <div>
-                  <div class="how-it-works-label">Login</div>
-                  <div class="how-it-works-desc">Prompts for your email and password, then authenticates with Pandora's API over HTTPS. Your password is cleared from memory immediately after login.</div>
+                  <div class="how-it-works-label">4. Login</div>
+                  <div class="how-it-works-desc">Prompts for your email and password via browser dialogs, authenticates with Pandora over HTTPS, and immediately nulls the password variable. If login fails, logs the raw response for debugging and lists possible causes.</div>
                 </div>
               </div>
-              <div class="how-it-works-item"
-                   data-lines="188-199"
-                   role="button"
-                   tabindex="0"
+
+              <div class="how-it-works-item" data-lines="170-186" role="button" tabindex="0"
+                   aria-label="Pagination helper — click to highlight in script">
+                <div>
+                  <div class="how-it-works-label">5. Pagination helper</div>
+                  <div class="how-it-works-desc">A reusable function that fetches all pages of results from any Pandora endpoint. Keeps requesting with increasing <code>startIndex</code> until a page comes back with fewer items than the page size. Used by stations, thumbs, and collection fetchers.</div>
+                </div>
+              </div>
+
+              <div class="how-it-works-item" data-lines="188-199" role="button" tabindex="0"
                    aria-label="Fetch stations — click to highlight in script">
-                <div class="how-it-works-icon">
-                  <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-                </div>
                 <div>
-                  <div class="how-it-works-label">Fetch stations</div>
-                  <div class="how-it-works-desc">Retrieves all your stations with full pagination (handles accounts with 250+ stations).</div>
+                  <div class="how-it-works-label">6. Fetch stations</div>
+                  <div class="how-it-works-desc">Retrieves all your stations using the pagination helper. Handles accounts with 250+ stations across multiple pages.</div>
                 </div>
               </div>
-              <div class="how-it-works-item"
-                   data-lines="201-253"
-                   role="button"
-                   tabindex="0"
+
+              <div class="how-it-works-item" data-lines="201-253" role="button" tabindex="0"
                    aria-label="Fetch thumbs — click to highlight in script">
-                <div class="how-it-works-icon">
-                  <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 00-6 0v4"/><path d="M5 9h14l1 12H4L5 9z"/></svg>
-                </div>
                 <div>
-                  <div class="how-it-works-label">Fetch thumbs</div>
-                  <div class="how-it-works-desc">For each station, fetches all thumbs up and thumbs down with pagination. Shows progress as <code>[12/47]</code> in the console. Rate-limit aware with automatic retry.</div>
+                  <div class="how-it-works-label">7. Fetch thumbs (concurrent)</div>
+                  <div class="how-it-works-desc">Processes 3 stations at a time using a worker pool. For each station, fetches thumbs up and thumbs down in parallel. Tags each thumb with its station name. Shows progress as <code>[12/47]</code> in the console.</div>
                 </div>
               </div>
-              <div class="how-it-works-item"
-                   data-lines="255-280"
-                   role="button"
-                   tabindex="0"
+
+              <div class="how-it-works-item" data-lines="255-280" role="button" tabindex="0"
                    aria-label="Fetch collection — click to highlight in script">
-                <div class="how-it-works-icon">
-                  <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
-                </div>
                 <div>
-                  <div class="how-it-works-label">Fetch collection</div>
-                  <div class="how-it-works-desc">Retrieves your saved songs, albums, artists, and playlists with pagination.</div>
+                  <div class="how-it-works-label">8. Fetch collection</div>
+                  <div class="how-it-works-desc">Fetches your saved songs, albums, artists, and playlists one type at a time with pagination. Each type uses a different Pandora content code (TR, AL, AR, PL).</div>
                 </div>
               </div>
-              <div class="how-it-works-item"
-                   data-lines="134-168,348-382"
-                   role="button"
-                   tabindex="0"
+
+              <div class="how-it-works-item" data-lines="282-297" role="button" tabindex="0"
+                   aria-label="Sanitize — click to highlight in script">
+                <div>
+                  <div class="how-it-works-label">9. Sanitize for sharing</div>
+                  <div class="how-it-works-desc">Deep-clones the full export and strips internal Pandora identifiers (listenerId, pandoraId, stationToken, CDN URLs, etc.) so the sanitized file is safe to share publicly.</div>
+                </div>
+              </div>
+
+              <div class="how-it-works-item" data-lines="134-168,348-396" role="button" tabindex="0"
                    aria-label="Download files — click to highlight in script">
-                <div class="how-it-works-icon">
-                  <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                </div>
                 <div>
-                  <div class="how-it-works-label">Download files</div>
-                  <div class="how-it-works-desc">Downloads three files: the full raw JSON export, a sanitized version (safe to share, with internal IDs stripped), and a CSV of liked tracks for importing into Spotify or YouTube Music.</div>
+                  <div class="how-it-works-label">10. Download files</div>
+                  <div class="how-it-works-desc">Creates and downloads three files: the full raw JSON, a sanitized JSON (IDs stripped), and a CSV of liked tracks with formula injection protection and a UTF-8 BOM for Excel compatibility. Prints a summary with elapsed time and counts.</div>
                 </div>
               </div>
-              <div class="how-it-works-item"
-                   data-lines="403-418"
-                   role="button"
-                   tabindex="0"
-                   aria-label="Logout — click to highlight in script">
-                <div class="how-it-works-icon">
-                  <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                </div>
+
+              <div class="how-it-works-item" data-lines="399-420" role="button" tabindex="0"
+                   aria-label="Cleanup and logout — click to highlight in script">
                 <div>
-                  <div class="how-it-works-label">Logout</div>
-                  <div class="how-it-works-desc">Automatically logs out of the Pandora session when the export completes (or if it fails or is aborted).</div>
+                  <div class="how-it-works-label">11. Cleanup and logout</div>
+                  <div class="how-it-works-desc">Runs in a <code>finally</code> block so it always executes, even on error or abort. Removes the global abort function, then sends a logout request using raw <code>fetch()</code> (bypassing the abort-aware API wrapper so it still works after cancellation).</div>
                 </div>
               </div>
+
             </div>
           </div>
 
