@@ -359,7 +359,6 @@
       collection,
     };
 
-    // M8 fix: sanitize first, then stringify sequentially to reduce memory peak
     const sanitized = sanitize(fullExport);
     downloadJSON(`pandora_export_${dateStr}.json`, fullExport);
     downloadJSON(`pandora_export_${dateStr}_sanitized.json`, sanitized);
