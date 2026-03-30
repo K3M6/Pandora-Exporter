@@ -102,8 +102,8 @@
       if (retries >= MAX_RETRIES) {
         throw new Error(`Rate limited on ${path} after ${MAX_RETRIES} retries. Try again in a few minutes.`);
       }
-      const raw = parseInt(res.headers.get("Retry-After") || "5", 10);
-      const wait = Math.min(isNaN(raw) ? 5 : raw, MAX_RETRY_WAIT);
+      const raw = parseInt(res.headers.get("Retry-After") || "15", 10);
+      const wait = Math.min(isNaN(raw) ? 15 : raw, MAX_RETRY_WAIT);
       console.warn(`  Pandora is asking us to slow down. Waiting ${wait}s (retry ${retries + 1}/${MAX_RETRIES})...`);
       await sleep(wait * 1000);
       return api(path, body, authToken, retries + 1);
@@ -222,33 +222,21 @@
     return { up, down };
   }
 
-  // ── Fetch thumbs with concurrency pool ───────────────────────────────────────
-  // L6 fix: process 3 stations concurrently instead of sequentially
+  // ── Fetch thumbs sequentially ──────────────────────────────────────────────
   async function fetchAllThumbs(stations, authToken) {
     const thumbsUp = [];
     const thumbsDown = [];
-    const concurrency = 3;
-    let nextIdx = 0;
 
-    async function worker() {
-      while (nextIdx < stations.length) {
-        const i = nextIdx++;
-        const station = stations[i];
-        checkAbort();
-        console.log(`  [${i + 1}/${stations.length}] ${station.name}`);
-        const { up, down } = await fetchThumbsForStation(station, authToken);
-        // L7 fix: mutate in place instead of spread-copying
-        for (const t of up)   { t._stationName = station.name; thumbsUp.push(t); }
-        for (const t of down) { t._stationName = station.name; thumbsDown.push(t); }
-        await sleep(75);
-      }
+    for (let i = 0; i < stations.length; i++) {
+      const station = stations[i];
+      checkAbort();
+      console.log(`  [${i + 1}/${stations.length}] ${station.name}`);
+      const { up, down } = await fetchThumbsForStation(station, authToken);
+      for (const t of up)   { t._stationName = station.name; thumbsUp.push(t); }
+      for (const t of down) { t._stationName = station.name; thumbsDown.push(t); }
+      await sleep(200);
     }
 
-    const workers = [];
-    for (let w = 0; w < Math.min(concurrency, stations.length); w++) {
-      workers.push(worker());
-    }
-    await Promise.all(workers);
     return { thumbsUp, thumbsDown };
   }
 
