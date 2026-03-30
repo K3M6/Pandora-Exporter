@@ -1948,9 +1948,11 @@ function buildTracksTable(key, tracks, containerId, countId, searchId) {
 
   const label  = key === "liked" ? "Liked tracks" : "Disliked tracks";
   const noun   = "track";
-  const vt     = makeVirtualTable({
+  let vt;
+  vt = makeVirtualTable({
     cols: TRACK_COLS, rows, container, ariaLabel: label,
     onRebuild: () => {
+      if (!vt) return;
       const n = vt.rowCount();
       countEl.textContent = n > 0
         ? `${n.toLocaleString()} ${noun}${n !== 1 ? "s" : ""}`
