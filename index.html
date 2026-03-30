@@ -1967,33 +1967,35 @@ function buildTracksTable(key, tracks, containerId, countId, searchId) {
    COLLECTION SUB-TABS
 ═══════════════════════════════════════════════════════════════════════════ */
 function buildCollectionSubtabs(songs, albums, artists, playlists, signal) {
+  function str(v) { return typeof v === "object" && v ? (v.name ?? v.displayName ?? "") : String(v ?? ""); }
+
   buildCollectionTable("songs",     songs,     ["Track", "Artist", "Album"],
     ["30%", "35%", "35%"],
     t => [
-      t.songName ?? t.songTitle ?? t.trackName ?? t.name ?? "",
-      t.artistName ?? t.artist ?? "",
-      t.albumName  ?? t.albumTitle ?? t.album ?? "",
+      str(t.songName ?? t.songTitle ?? t.trackName ?? t.name),
+      str(t.artistName ?? t.artist),
+      str(t.albumName ?? t.albumTitle ?? t.album),
     ],
     signal
   );
   buildCollectionTable("albums",    albums,    ["Album", "Artist"],
     ["50%", "50%"],
     t => [
-      t.albumName ?? t.albumTitle ?? t.name ?? "",
-      t.artistName ?? t.artist ?? "",
+      str(t.albumName ?? t.albumTitle ?? t.name),
+      str(t.artistName ?? t.artist),
     ],
     signal
   );
   buildCollectionTable("artists",   artists,   ["Artist"],
     ["100%"],
-    t => [t.artistName ?? t.artist ?? t.name ?? ""],
+    t => [str(t.artistName ?? t.artist ?? t.name)],
     signal
   );
-  buildCollectionTable("playlists", playlists, ["Name", "Description"],
-    ["40%", "60%"],
+  buildCollectionTable("playlists", playlists, ["Name", "Tracks"],
+    ["60%", "40%"],
     t => [
-      t.name ?? t.playlistName ?? "",
-      t.description ?? "",
+      str(t.name ?? t.playlistName),
+      t.totalTracks != null ? String(t.totalTracks) : (t.description ?? ""),
     ],
     signal
   );
