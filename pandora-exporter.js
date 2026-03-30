@@ -102,8 +102,8 @@
       if (retries >= MAX_RETRIES) {
         throw new Error(`Rate limited on ${path} after ${MAX_RETRIES} retries. Try again in a few minutes.`);
       }
-      const raw = parseInt(res.headers.get("Retry-After") || "15", 10);
-      const wait = Math.min(isNaN(raw) ? 15 : raw, MAX_RETRY_WAIT);
+      const raw = parseInt(res.headers.get("Retry-After") || "25", 10);
+      const wait = Math.min(isNaN(raw) ? 25 : raw, MAX_RETRY_WAIT);
       console.warn(`  Pandora is asking us to slow down. Waiting ${wait}s (retry ${retries + 1}/${MAX_RETRIES})...`);
       await sleep(wait * 1000);
       return api(path, body, authToken, retries + 1);
@@ -242,7 +242,8 @@
 
   // ── Fetch collection (saved songs, albums, artists, playlists) ───────────────
   async function fetchCollection(authToken) {
-    console.log("Fetching collection...");
+    console.log("Fetching collection (pausing 10s for rate limit cooldown)...");
+    await sleep(10000);
     const types = { songs: "TR", albums: "AL", artists: "AR", playlists: "PL" };
     const result = {};
 
@@ -261,7 +262,7 @@
         console.warn(`  Skipping ${label}: ${e.message}`);
         result[label] = [];
       }
-      await sleep(50);
+      await sleep(500);
     }
 
     return result;
